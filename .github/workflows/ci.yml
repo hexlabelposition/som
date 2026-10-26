@@ -90,6 +90,12 @@ jobs:
     name: Test (${{ matrix.browser }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The image has the browsers and their system packages preinstalled, so the
+    # job does not depend on the Ubuntu apt mirrors. Its version must match the
+    # playwright package (ARCHITECTURE §8).
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+      options: --user 1001
     strategy:
       fail-fast: false
       matrix:
@@ -98,17 +104,15 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          package-manager-cache: false
+      # setup-bun needs unzip, which the image does not have, so Bun is
+      # installed from npm in the version from packageManager.
+      - name: Install Bun
+        run: |
+          version=$(node -p "require('./package.json').packageManager.split('@')[1]")
+          npm install --global --prefix "$HOME/.bun-npm" "bun@$version"
+          echo "$HOME/.bun-npm/bin" >> "$GITHUB_PATH"
+      - run: node --version && bun --version
       - run: bun install --frozen-lockfile
-      - run: bunx playwright install --with-deps "$BROWSER"
-        env:
-          BROWSER: ${{ matrix.browser }}
       - run: bun run test:browser --browser "$BROWSER"
         env:
           BROWSER: ${{ matrix.browser }}

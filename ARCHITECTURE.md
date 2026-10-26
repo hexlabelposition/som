@@ -253,6 +253,7 @@ Typed reads (`getNumber`, `getLength`, …) depend on the spec data and come wit
 - **GitHub Actions:** pinned to commit SHAs, updated weekly by Dependabot with a 7-day cooldown.
 - **Tooling** (tsdown, vitest, eslint, …): caret ranges (`^`), `bun.lock` committed. Exception: TypeScript uses a tilde range (`~`), because typescript-eslint supports only specific TypeScript minor versions. Updated weekly by Dependabot as one grouped pull request with a 7-day cooldown; TypeScript minor and major updates are ignored and done by hand.
 - **Anything that affects test or benchmark results** - benchmark competitors (svgson, svg-parser) and icon sets - is pinned to **exact versions**, so snapshots and benchmark numbers change only when the code changes. Dependabot ignores these packages; they are updated by hand.
+- **Playwright** is pinned to an exact version that matches the `mcr.microsoft.com/playwright` image the browser tests run in. The package and the image digest in `ci.yml` are updated together by hand.
 - The package manager is declared in the `packageManager` field.
 
 ## 9. Compatibility
