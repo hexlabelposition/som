@@ -1,0 +1,41 @@
+version: 2
+
+updates:
+  # Actions stay pinned to commit SHAs; Dependabot keeps the version comment.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Tooling only: the library has no runtime dependencies (ARCHITECTURE §8).
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      tooling:
+        patterns: ["*"]
+    ignore:
+      # typescript-eslint supports only specific TypeScript minors.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
+      # Types match the minimum supported Node.js version.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      # Must match the Playwright image in ci.yml; updated together by hand.
+      - dependency-name: playwright
