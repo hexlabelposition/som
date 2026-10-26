@@ -9,7 +9,7 @@ Items are numbered so early commits can point to them, for example `feat(parse):
 An empty project that builds, lints and tests.
 
 - [x] **B1** Check that the `som` name is available on npm and GitHub: taken on npm, published as `@hexlabelposition/som`
-- [ ] **B53** Publish a `0.0.0-stage` placeholder to npm by hand to reserve the name and allow trusted publishing setup (B9); no Git tag or GitHub release
+- [x] **B53** Reserve the name on npm by hand so the trusted publisher (B9) can be configured: `npm stage publish` makes npm create its `0.0.0-stage` placeholder; the staged version is never approved; no Git tag or GitHub release
 - [x] **B2** Set up tooling: Bun, tsdown, TypeScript 6, Vitest 5 (node + browser), fast-check, ESLint, Prettier, publint, attw
 - [x] **B3** `package.json`: ESM, `sideEffects: false`, Node >= 22, `exports`, `packageManager`
 - [x] **B4** tsdown: entry `src/index.ts`, `platform: "neutral"`, `target: "es2022"`
