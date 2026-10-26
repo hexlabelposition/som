@@ -34,13 +34,14 @@
     "build": "tsdown",
     "prepack": "bun run build",
     "typecheck": "tsc -p tsconfig.lib.json && tsc -p tsconfig.test.json && tsc -p tsconfig.scripts.json",
-    "test": "vitest run",
-    "test:node": "vitest run --project node",
-    "test:browser": "vitest run --project browser",
-    "lint": "eslint .",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check . '!**/*.md'",
-    "docs:check": "prettier --check '**/*.md'"
+    "docs:check": "prettier --check '**/*.md'",
+    "test": "vitest run",
+    "test:node": "vitest run --project node",
+    "test:browser": "vitest run --project browser"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
