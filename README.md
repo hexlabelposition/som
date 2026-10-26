@@ -46,7 +46,7 @@ Versions show the intended order, not dates.
 ## Usage (draft API)
 
 ```ts
-import { parse, stringify, getRoot } from "som";
+import { parse, stringify, getRoot } from "@hexlabelposition/som";
 
 const doc = parse(
   '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>',
@@ -66,7 +66,7 @@ stringify(doc);
 Operations mutate the document. When you need to keep the original, copy it explicitly:
 
 ```ts
-import { clone } from "som";
+import { clone } from "@hexlabelposition/som";
 
 const copy = clone(doc);
 ```
@@ -83,7 +83,7 @@ som is **not** a JSX parser, a renderer, a visual editor, or a sanitizer. Parsed
 
 ## Name
 
-**som** stands for **SVG Object Model**: SVG represented as a tree of plain objects. The package name and the import path are written in lowercase: `som`.
+**som** stands for **SVG Object Model**: SVG represented as a tree of plain objects. The project is called som; it is published on npm as `@hexlabelposition/som`, because the unscoped `som` name is taken.
 
 ## Contributing
 

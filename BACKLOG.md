@@ -8,7 +8,7 @@ Items are numbered so early commits can point to them, for example `feat(parse):
 
 An empty project that builds, lints and tests.
 
-- [ ] **B1** Check that the `som` name is available on npm and GitHub
+- [x] **B1** Check that the `som` name is available on npm and GitHub: taken on npm, published as `@hexlabelposition/som`
 - [ ] **B53** Publish a `0.0.0-stage` placeholder to npm by hand to reserve the name and allow trusted publishing setup (B9); no Git tag or GitHub release
 - [ ] **B2** Set up tooling: Bun, tsdown, TypeScript 6, Vitest 5 (node + browser), fast-check, ESLint, Prettier, publint, attw
 - [ ] **B3** `package.json`: ESM, `sideEffects: false`, Node >= 22, `exports`, `packageManager`
@@ -81,7 +81,7 @@ Read, write and normalize path data (`d`).
 - [ ] **B48** Transforms: parse and compose matrices, apply to paths
 - [ ] **B49** Optimization passes
 - [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
-- [ ] **B51** Subpath exports (`som/parse`, …) once modules settle (A7)
+- [ ] **B51** Subpath exports (`@hexlabelposition/som/parse`, …) once modules settle (A7)
 - [ ] **B52** Deno in CI
 
 ## Open questions

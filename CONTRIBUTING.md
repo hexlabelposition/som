@@ -42,7 +42,7 @@ Source code lives in domain folders under `src/` (ARCHITECTURE §3): `ast`, `par
 - **Dependencies flow one way** and never form cycles. `parse` and `stringify` do not import each other (A14); code shared between them goes in `internal/`.
 - **`internal/` is never exported**, directly or through re-exports.
 - **Value-level functions do not depend on `ast`.** `parsePath("M0 0")` and `parseColor("#fff")` work on strings; AST-level functions are built on top of them.
-- **Export names are unique across the library**, because the `som` entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
+- **Export names are unique across the library**, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
 - **No side effects at import time** and no state shared between modules, so unused code is removed by tree-shaking.
 
 When adding a folder, register it in the `modules` table at the top of `eslint.config.ts` and add it to the dependency graph in ARCHITECTURE §3.

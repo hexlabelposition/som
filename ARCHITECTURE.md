@@ -6,13 +6,13 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 
 | #   | Decision                                                                                                                                    | Status   |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| A1  | Single package `som` - SOM (SVG Object Model), MIT, TypeScript, ESM-only                                                                    | Accepted |
+| A1  | Single package `@hexlabelposition/som` - SOM (SVG Object Model), MIT, TypeScript, ESM-only                                                  | Accepted |
 | A2  | Zero runtime dependencies                                                                                                                   | Accepted |
 | A3  | The parser, serializer and AST are part of som itself, not a dependency on another SVG library                                              | Accepted |
 | A4  | The AST is made of plain objects, mutated in place and copied explicitly with `clone()`                                                     | Accepted |
 | A5  | Pure JavaScript, no DOM: Node.js ≥ 22, Bun, browsers                                                                                        | Accepted |
 | A6  | Round trips are lossless at the tree level; lexical details are normalized (§5)                                                             | Accepted |
-| A7  | Single entry point `som` for now; subpath exports can be added later without breaking changes (§4)                                          | Accepted |
+| A7  | Single entry point `@hexlabelposition/som` for now; subpath exports can be added later without breaking changes (§4)                        | Accepted |
 | A8  | Source organized as folders inside one package, not as workspace packages                                                                   | Accepted |
 | A9  | v0.1 scope: `parse`, `stringify` + `attributes`                                                                                             | Accepted |
 | A10 | Parsing is strict: only well-formed XML is accepted                                                                                         | Accepted |
@@ -65,11 +65,7 @@ interface SvgDoctype {
 type SvgNode = SvgElement | SvgText | SvgCData | SvgComment | SvgInstruction;
 
 type SvgDocumentChild =
-  | SvgElement
-  | SvgText
-  | SvgComment
-  | SvgInstruction
-  | SvgDoctype;
+  SvgElement | SvgText | SvgComment | SvgInstruction | SvgDoctype;
 
 interface XmlDeclaration {
   version: string;
@@ -154,17 +150,17 @@ som/
 
 ## 4. Public API
 
-- `som` is the only entry point for now and exports the whole public API.
+- `@hexlabelposition/som` is the only entry point for now and exports the whole public API.
 - `package.json` `exports` lists exactly `.` and `./package.json`; tsdown builds one entry (`platform: "neutral"`, `target: "es2022"`, ESM, `.d.ts`).
 - Core exports: `parse`, `stringify`, `getRoot`, `clone`, `SvgParseError` and all node types.
 - No options for now (A15). Each function takes only its data. When options are needed, they are added as an optional last argument, which is not a breaking change.
 
 ### Future subpath exports
 
-Subpath exports such as `som/parse` and `som/stringify` may be added later. Adding them is not a breaking change, but removing or renaming one is, so they wait until the module boundaries settle. To keep that step cheap, these rules apply from the start:
+Subpath exports such as `@hexlabelposition/som/parse` and `@hexlabelposition/som/stringify` may be added later. Adding them is not a breaking change, but removing or renaming one is, so they wait until the module boundaries settle. To keep that step cheap, these rules apply from the start:
 
 1. A folder's `index.ts` is its public API, so every folder can become a subpath as is.
-2. Export names are unique across the library, because `som` re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
+2. Export names are unique across the library, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
 3. Modules have no side effects at import time and no shared state.
 4. Every class, such as `SvgParseError`, exists once in the build, so `instanceof` works whichever entry point it is imported from.
 
