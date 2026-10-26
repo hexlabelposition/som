@@ -83,6 +83,7 @@ Read, write and normalize path data (`d`).
 - [ ] **B49** Optimization passes
 - [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
 - [ ] **B51** Subpath exports (`@hexlabelposition/som/parse`, …) once modules settle (A7)
+- [ ] **B55** Consider tsdown `exports: true` to generate `exports` from the entries once there are subpath exports (B51)
 - [ ] **B52** Deno in CI
 
 ## Open questions
