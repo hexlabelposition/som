@@ -15,8 +15,8 @@ An empty project that builds, lints and tests.
 - [x] **B4** tsdown: entry `src/index.ts`, `platform: "neutral"`, `target: "es2022"`
 - [x] **B5** Folder structure from ARCHITECTURE §3
 - [x] **B6** ESLint rules: imports only through folder `index.ts`, no cycles, `internal/` not exported, `parse` and `stringify` don't import each other (A14)
-- [ ] **B7** CI: lint, format, Markdown check (`docs:check`), typecheck, build and `npm pack --dry-run` on Node 24; tests on Node 22/24/26, Bun 1.2.23 + latest, Chromium/Firefox/WebKit
-- [ ] **B8** actionlint for workflow changes
+- [x] **B7** CI: lint, format, Markdown check (`docs:check`), typecheck, build and `npm pack --dry-run` on Node 24; tests on Node 22/24/26, Bun 1.2.23 + latest, Chromium/Firefox/WebKit
+- [x] **B8** actionlint for workflow changes
 - [ ] **B10** Dependabot for GitHub Actions: SHA pins, weekly, 7-day cooldown (A13)
 - [ ] **B11** Dependabot for npm tooling: one grouped PR, weekly, 7-day cooldown, TypeScript minor/major ignored (A13)
 - [ ] **B12** `build`, `lint`, `format:check`, `docs:check`, `typecheck` and `test` pass locally and in CI
