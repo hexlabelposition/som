@@ -129,5 +129,6 @@ A release is a `vX.Y.Z` tag on a commit whose `package.json` has the same versio
    git push origin main vX.Y.Z
    ```
 
-3. The Release workflow checks the tag, runs CI, builds the tarball once and creates a draft release with the tarball attached. Versions with a pre-release part (`X.Y.Z-beta.N`) are marked as pre-releases.
-4. Review the draft release and publish it.
+3. The Release workflow checks that the tag matches `package.json`, runs CI, publishes to npm with provenance and creates a GitHub release with generated notes. Versions with a pre-release part (`X.Y.Z-beta.N`) go to the `next` dist-tag and are marked as pre-releases.
+
+A pushed tag is a release: npm versions can't be republished, so check `main` is green before tagging.

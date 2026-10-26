@@ -4,23 +4,22 @@ Milestones in the order they are planned. Not tied to dates. A1-A15 refer to dec
 
 Items are numbered so early commits can point to them, for example `feat(parse): strict parsing (B18)`. Numbers are not reused.
 
-## v0.0 - Project setup
+## Project setup
 
-An empty project that builds, lints, tests and releases.
+An empty project that builds, lints and tests.
 
 - [ ] **B1** Check that the `som` name is available on npm and GitHub
+- [ ] **B53** Publish a `0.0.0-stage` placeholder to npm by hand to reserve the name and allow trusted publishing setup (B9); no Git tag or GitHub release
 - [ ] **B2** Set up tooling: Bun, tsdown, TypeScript 6, Vitest 5 (node + browser), fast-check, ESLint, Prettier, publint, attw
 - [ ] **B3** `package.json`: ESM, `sideEffects: false`, Node >= 22, `exports`, `packageManager`
 - [ ] **B4** tsdown: entry `src/index.ts`, `platform: "neutral"`, `target: "es2022"`
 - [ ] **B5** Folder structure from ARCHITECTURE §3
 - [ ] **B6** ESLint rules: imports only through folder `index.ts`, no cycles, `internal/` not exported, `parse` and `stringify` don't import each other (A14)
-- [ ] **B7** CI: lint, format, Markdown check (`docs:check`), typecheck and build on Node 24; tests on Node 22/24/26, Bun 1.2.23 + latest, Chromium/Firefox/WebKit
+- [ ] **B7** CI: lint, format, Markdown check (`docs:check`), typecheck, build and `npm pack --dry-run` on Node 24; tests on Node 22/24/26, Bun 1.2.23 + latest, Chromium/Firefox/WebKit
 - [ ] **B8** actionlint for workflow changes
-- [ ] **B9** Release workflow on tags
 - [ ] **B10** Dependabot for GitHub Actions: SHA pins, weekly, 7-day cooldown (A13)
 - [ ] **B11** Dependabot for npm tooling: one grouped PR, weekly, 7-day cooldown, TypeScript minor/major ignored (A13)
 - [ ] **B12** `build`, `lint`, `format:check`, `docs:check`, `typecheck` and `test` pass locally and in CI
-- [ ] **B13** A test tag creates a draft release
 
 ## v0.1 - parse, stringify, ast, attributes
 
@@ -42,6 +41,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 - [ ] **B27** Speed claims in README come only from the benchmarks
 - [ ] **B28** Every public export has TSDoc and an explicit return type
 - [ ] **B29** publint and attw pass
+- [ ] **B9** Release workflow on `vX.Y.Z` tags: version check, CI, `npm publish` with trusted publishing (OIDC, provenance), GitHub release with generated notes; trusted publisher configured on npmjs.com
 - [ ] **B30** Release v0.1.0
 
 ## v0.2 - Spec types

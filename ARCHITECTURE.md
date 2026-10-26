@@ -235,13 +235,13 @@ Typed reads (`getNumber`, `getLength`, …) depend on the spec data and come wit
 
 **CI** (GitHub Actions, actions pinned to commit SHAs):
 
-- Lint, format check, type check and build on Node.js 24.
+- Lint, format check, type check, build and `npm pack --dry-run` on Node.js 24.
 - Tests on Node.js 22, 24 and 26 (minimum, active LTS, current).
 - Tests on Bun 1.2.23 and latest.
 - Tests in Chromium, Firefox and WebKit.
 - Markdown formatting check.
 
-**Release:** pushing a `vX.Y.Z` tag that matches `package.json` runs CI, builds the tarball once and attaches it to a draft release created from the same tag. A maintainer reviews the draft and publishes it.
+**Release:** pushing a `vX.Y.Z` tag that matches `package.json` runs CI, publishes the package to npm with trusted publishing (OIDC, no long-lived token, provenance attached) and creates a GitHub release with generated notes. Pre-release versions (`X.Y.Z-beta.N`) are published under the `next` dist-tag. The tag is the only manual step; `npm pack --dry-run` runs in regular CI so packaging problems show up before a tag.
 
 **Conventions:** Conventional Commits (`feat`, `fix`, `perf`, `docs`, `test`, `build`, `ci`, `chore`); release commits are `chore: release X.Y.Z`. Workflow changes are checked with actionlint.
 
