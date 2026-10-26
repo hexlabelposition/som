@@ -20,6 +20,7 @@ An empty project that builds, lints and tests.
 - [x] **B10** Dependabot for GitHub Actions: SHA pins, weekly, 7-day cooldown (A13)
 - [x] **B11** Dependabot for npm tooling: one grouped PR, weekly, 7-day cooldown, TypeScript minor/major ignored (A13)
 - [x] **B12** `build`, `lint`, `format:check`, `docs:check`, `typecheck` and `test` pass locally and in CI
+- [x] **B9** Release workflow on `vX.Y.Z` tags: version check, CI, build without publishing permissions, `npm stage publish` with trusted publishing (OIDC, provenance), GitHub release with generated notes
 
 ## v0.1 - parse, stringify, ast, attributes
 
@@ -41,7 +42,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 - [ ] **B27** Speed claims in README come only from the benchmarks
 - [ ] **B28** Every public export has TSDoc and an explicit return type
 - [ ] **B29** publint and attw pass
-- [ ] **B9** Release workflow on `vX.Y.Z` tags: version check, CI, `npm publish` with trusted publishing (OIDC, provenance), GitHub release with generated notes; trusted publisher configured on npmjs.com
+- [ ] **B54** Right before v0.1.0: create the `npm` GitHub environment (only `v*` tags) and the trusted publisher with `npm trust github … --allow-stage-publish`; the first publish has to follow within 2 days
 - [ ] **B30** Release v0.1.0
 
 ## v0.2 - Spec types

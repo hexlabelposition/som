@@ -235,9 +235,9 @@ Typed reads (`getNumber`, `getLength`, …) depend on the spec data and come wit
 - Tests on Node.js 22, 24 and 26 (minimum, active LTS, current).
 - Tests on Bun 1.2.23 and latest.
 - Tests in Chromium, Firefox and WebKit.
-- Markdown formatting check.
+- Markdown formatting check. Changes to Markdown and `LICENSE` alone skip CI and run only this check, in the docs workflow.
 
-**Release:** pushing a `vX.Y.Z` tag that matches `package.json` runs CI, publishes the package to npm with trusted publishing (OIDC, no long-lived token, provenance attached) and creates a GitHub release with generated notes. Pre-release versions (`X.Y.Z-beta.N`) are published under the `next` dist-tag. The tag is the only manual step; `npm pack --dry-run` runs in regular CI so packaging problems show up before a tag.
+**Release:** pushing a `vX.Y.Z` tag that matches `package.json` runs CI, builds the package in a job without publishing permissions, stages it on npm with trusted publishing (OIDC, no long-lived token, provenance attached) and creates a GitHub release with generated notes. A staged version becomes installable only after a maintainer approves it with 2FA; the trusted publisher may stage but not publish. Pre-release versions (`X.Y.Z-beta.N`) are staged under the `next` dist-tag. The tag and the approval are the only manual steps; `npm pack --dry-run` runs in regular CI so packaging problems show up before a tag.
 
 **Conventions:** Conventional Commits (`feat`, `fix`, `perf`, `docs`, `test`, `build`, `ci`, `chore`); release commits are `chore: release X.Y.Z`. Workflow changes are checked with actionlint.
 
