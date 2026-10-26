@@ -28,7 +28,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 
 - [ ] **B14** Decide which `attributes` helpers go into v0.1 (ARCHITECTURE §6)
 - [ ] **B15** Decide whether mutating helpers return `void` or the node
-- [ ] **B16** Node types (A4), `getRoot`, type guards (`isElement`, `isText`, …)
+- [x] **B16** Node types (A4), `getRoot`, type guards (`isElement`, `isText`, …)
 - [ ] **B17** `clone`, `walk` (with parent, skip, stop), `find` / `findAll`
 - [ ] **B18** `parse`: strict, keeps whitespace (A10)
 - [ ] **B19** `SvgParseError` with stable codes and position (A12)
