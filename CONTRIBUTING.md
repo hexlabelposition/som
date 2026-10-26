@@ -45,7 +45,7 @@ Source code lives in domain folders under `src/` (ARCHITECTURE §3): `ast`, `par
 - **Export names are unique across the library**, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
 - **No side effects at import time** and no state shared between modules, so unused code is removed by tree-shaking.
 
-When adding a folder, register it in the `modules` table at the top of `eslint.config.ts` and add it to the dependency graph in ARCHITECTURE §3.
+When adding a folder, register it in the `modules` table at the top of `eslint.config.ts`, below the modules it depends on, and add it to the dependency graph in ARCHITECTURE §3.
 
 ### Library code
 
