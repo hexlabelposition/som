@@ -1,0 +1,62 @@
+{
+  "name": "@hexlabelposition/som",
+  "version": "0.0.0",
+  "description": "Zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects",
+  "keywords": [
+    "svg",
+    "ast",
+    "parser",
+    "serializer",
+    "xml"
+  ],
+  "homepage": "https://github.com/hexlabelposition/som#readme",
+  "bugs": "https://github.com/hexlabelposition/som/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hexlabelposition/som.git"
+  },
+  "license": "MIT",
+  "author": "Vladyslav Kudriashov",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "bun@1.4.0",
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "bun run build",
+    "typecheck": "tsc -p tsconfig.lib.json && tsc -p tsconfig.test.json && tsc -p tsconfig.scripts.json",
+    "test": "vitest run",
+    "test:node": "vitest run --project node",
+    "test:browser": "vitest run --project browser",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check . '!**/*.md'",
+    "docs:check": "prettier --check '**/*.md'"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "@vitest/browser-playwright": "^5.0.5",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "fast-check": "^4.10.2",
+    "jiti": "^2.7.0",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "publint": "^0.3.25",
+    "tsdown": "^0.23.2",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

@@ -10,10 +10,10 @@ An empty project that builds, lints and tests.
 
 - [x] **B1** Check that the `som` name is available on npm and GitHub: taken on npm, published as `@hexlabelposition/som`
 - [ ] **B53** Publish a `0.0.0-stage` placeholder to npm by hand to reserve the name and allow trusted publishing setup (B9); no Git tag or GitHub release
-- [ ] **B2** Set up tooling: Bun, tsdown, TypeScript 6, Vitest 5 (node + browser), fast-check, ESLint, Prettier, publint, attw
-- [ ] **B3** `package.json`: ESM, `sideEffects: false`, Node >= 22, `exports`, `packageManager`
-- [ ] **B4** tsdown: entry `src/index.ts`, `platform: "neutral"`, `target: "es2022"`
-- [ ] **B5** Folder structure from ARCHITECTURE §3
+- [x] **B2** Set up tooling: Bun, tsdown, TypeScript 6, Vitest 5 (node + browser), fast-check, ESLint, Prettier, publint, attw
+- [x] **B3** `package.json`: ESM, `sideEffects: false`, Node >= 22, `exports`, `packageManager`
+- [x] **B4** tsdown: entry `src/index.ts`, `platform: "neutral"`, `target: "es2022"`
+- [x] **B5** Folder structure from ARCHITECTURE §3
 - [ ] **B6** ESLint rules: imports only through folder `index.ts`, no cycles, `internal/` not exported, `parse` and `stringify` don't import each other (A14)
 - [ ] **B7** CI: lint, format, Markdown check (`docs:check`), typecheck, build and `npm pack --dry-run` on Node 24; tests on Node 22/24/26, Bun 1.2.23 + latest, Chromium/Firefox/WebKit
 - [ ] **B8** actionlint for workflow changes

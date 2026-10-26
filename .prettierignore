@@ -1,0 +1,8 @@
+# Lockfiles
+bun.lock
+
+# Build output
+dist/
+
+# Test output
+coverage/
