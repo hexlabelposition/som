@@ -79,6 +79,7 @@ Rules:
 - **Attribute values are strings** with character and entity references decoded, and tabs and line breaks replaced by spaces as XML requires. Typed parsing (numbers, lengths, colors, path data) lives in the modules that need it.
 - **Attribute order is the object's insertion order**, kept by `stringify()`. This is reliable because XML names cannot start with a digit.
 - **Namespaces are kept as written.** Prefixes stay in names; `xmlns` declarations are ordinary attributes. Namespace URIs are not resolved; undeclared prefixes are rejected by the parser.
+- **The document is an ordinary parent.** Its `children` hold the root element and the nodes around it, as in DOM and unist, so traversal treats it like any element. `getRoot()` finds the root element; a dedicated `root` field would make every traversal special-case the document.
 - **The XML declaration is a field, not a node.** Set or delete `declaration` to control whether `stringify()` writes it.
 - **Doctype appears only at document level; CDATA only inside elements.** The two child unions encode this.
 - **No parent pointers.** The tree is plain data: it can be stored as JSON or sent to a worker. Traversal helpers pass the parent to callbacks instead.
