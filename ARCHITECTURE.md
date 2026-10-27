@@ -104,7 +104,8 @@ som/
 │   ├── parse/              # parser: string → AST
 │   │   ├── parse.ts        #   parse
 │   │   ├── errors.ts       #   SvgParseError, SvgParseErrorCode
-│   │   ├── entities.ts, doctype.ts, declaration.ts, namespaces.ts, limits.ts
+│   │   ├── scanner.ts      #   cursor and low-level reading shared by the files below
+│   │   ├── markup.ts, entities.ts, doctype.ts, declaration.ts, namespaces.ts, limits.ts
 │   │   ├── *.test.ts
 │   │   └── index.ts
 │   ├── stringify/          # serializer: AST → string
@@ -178,7 +179,7 @@ Subpath exports such as `@hexlabelposition/som/parse` and `@hexlabelposition/som
 - Input is a string; streaming is out of scope.
 - **Strict (A10).** Only well-formed XML is accepted. SVG embedded in HTML has to be extracted as well-formed XML first.
 - **Any root element.** `parse()` checks that the input is well-formed XML, not that it is SVG: the root can be `<svg>`, a prefixed `<svg:svg>`, a fragment such as `<symbol>` or `<g>`, or any other element. Telling whether a document is SVG needs namespace and element data, so it belongs to `spec`.
-- **Errors (A12).** `parse()` throws `SvgParseError` with `code`, `line`, `column` and `offset`. Codes: `MALFORMED_XML`, `MISSING_ROOT`, `UNDECLARED_PREFIX`, `UNDEFINED_ENTITY`, `EXTERNAL_ENTITY`, `UNSUPPORTED_ENTITY` and the `MAX_*_EXCEEDED` limit codes. Existing codes change only in major releases; new codes may appear in minor ones; message text may change at any time.
+- **Errors (A12).** `parse()` throws `SvgParseError` with `code`, `line`, `column` and `offset`. `line` and `column` start at 1; columns and offsets count UTF-16 code units, like string indexes. Codes: `MALFORMED_XML`, `MISSING_ROOT`, `UNDECLARED_PREFIX`, `UNDEFINED_ENTITY`, `EXTERNAL_ENTITY`, `UNSUPPORTED_ENTITY` and the `MAX_*_EXCEEDED` limit codes. Existing codes change only in major releases; new codes may appear in minor ones; message text may change at any time.
 - **Resource limits (A11).** External entities are never loaded. Input length (64 Mi chars), nesting depth (1,024), entity expansions (10,000) and expanded text length (1 Mi chars) are limited; the limits are fixed for now.
 - **Entities.** Text entities declared in the internal DTD subset are expanded (Adobe Illustrator uses them). Entities containing markup throw `UNSUPPORTED_ENTITY`. The DTD is otherwise not interpreted: no parameter entities, no `<!ATTLIST>` defaults.
 - **Whitespace** is kept as it is in the source, including whitespace-only text between elements.
