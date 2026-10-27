@@ -1,6 +1,6 @@
 # Backlog
 
-Milestones in the order they are planned. Not tied to dates. A1-A15 refer to decisions in [ARCHITECTURE.md](./ARCHITECTURE.md).
+Milestones in the order they are planned. Not tied to dates. A1-A16 refer to decisions in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 Items are numbered so early commits can point to them, for example `feat(parse): strict parsing (B18)`. Numbers are not reused.
 
@@ -26,7 +26,7 @@ An empty project that builds, lints and tests.
 
 Parse SVG into a plain-object tree, edit it, write it back without losing anything.
 
-- [ ] **B14** Decide which `attributes` helpers go into v0.1 (ARCHITECTURE §6)
+- [x] **B14** Decide which `attributes` helpers go into v0.1 (ARCHITECTURE §6): `style` and `class` (A16)
 - [ ] **B15** Decide whether mutating helpers return `void` or the node
 - [x] **B16** Node types (A4), `getRoot`, type guards (`isElement`, `isText`, …)
 - [ ] **B17** `clone`, `walk` (with parent, skip, stop), `find` / `findAll`
@@ -34,7 +34,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 - [ ] **B19** `SvgParseError` with stable codes and position (A12)
 - [ ] **B20** Resource limits: no external entities, limited entity expansion (A11)
 - [ ] **B21** `stringify`: writes the tree as is, with escaping and XML character checks
-- [ ] **B22** `attributes` helpers chosen above
+- [ ] **B22** `attributes` helpers (A16): `parseStyle`, `stringifyStyle`, `get`/`set`/`removeStyleProperty`, `has`/`add`/`remove`/`toggleClass`
 - [ ] **B23** Round-trip tests from ARCHITECTURE §5 (A6), including property-based
 - [ ] **B24** Test corpus: icon sets and editor exports (Figma, Illustrator, Inkscape, SVGO), with licenses
 - [ ] **B25** Every corpus file parses, round-trips and produces stable output
@@ -55,6 +55,7 @@ Know which elements and attributes exist in each SVG version.
 - [ ] **B34** Value types per attribute (length, color, path data, enums, …)
 - [ ] **B35** Runtime check: is an attribute valid for an element
 - [ ] **B36** Typed reads: `getNumber`, `getLength`, …
+- [ ] **B56** Effective value of a presentation attribute versus the same property in `style` (ARCHITECTURE §6)
 - [ ] **B37** Release v0.2.0
 
 ## v0.3 - Colors

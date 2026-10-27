@@ -21,6 +21,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A13 | Dependency pinning policy (§8)                                                                                                              | Accepted |
 | A14 | Parsing and serialization are separate modules, `parse` and `stringify`, that do not depend on each other                                   | Accepted |
 | A15 | No options for now: functions take only their data (`parse(input)`, `stringify(document)`); options come later as an optional last argument | Accepted |
+| A16 | v0.1 `attributes` helpers cover the `style` and `class` attributes; effective values and bulk operations are deferred (§6)                  | Accepted |
 
 ## 2. Data model
 
@@ -206,14 +207,27 @@ These options are candidates for later and are not part of the API yet (A15):
 
 ## 6. Attributes module
 
-Because attributes are already a plain object, `attributes` must add behavior that plain access does not give, not wrap `el.attributes[name]` in functions. Candidates for v0.1, to be confirmed:
+Because attributes are already a plain object, `attributes` must add behavior that plain access does not give, not wrap `el.attributes[name]` in functions. v0.1 contains helpers for the `style` and `class` attributes (A16). Return types of the mutating helpers follow B15.
 
-- `style` attribute: parse to and write from a property map; get, set and remove one property while keeping the rest of the text.
-- `class` attribute: has, add, remove, toggle without duplicating or reordering tokens.
-- Effective value: an attribute versus the same property in `style`, following CSS precedence.
-- Bulk operations across a tree: rename, remove or set an attribute on every matching element.
+### `style` attribute
 
-Typed reads (`getNumber`, `getLength`, …) depend on the spec data and come with v0.2.
+- **Value level** (rule 3 in §3, no `ast` import): `parseStyle(text)` returns a property map, `stringifyStyle(properties)` writes one as `name: value; name: value`. Declarations are split with a small CSS tokenizer, so `;` and `:` inside strings, `url(…)` and comments do not break them. Values are trimmed and kept as written, including `!important`.
+- **Element level:** `getStyleProperty(el, name)`, `setStyleProperty(el, name, value)`, `removeStyleProperty(el, name)`. Only the affected declaration is rewritten; other declarations, their order, comments and spacing stay as they are.
+- **Duplicates** follow CSS: `get` returns the last declaration. `set` writes into the last one and removes the earlier ones, which only served as fallbacks for it. `remove` removes all of them.
+- **Names** are compared ASCII case-insensitively, except custom properties (`--name`), which are case-sensitive.
+- When the last declaration is removed, the `style` attribute is removed too.
+
+### `class` attribute
+
+- `hasClass(el, name)`, `addClass(el, name)`, `removeClass(el, name)`, `toggleClass(el, name)`.
+- Semantics follow DOM `classList`: tokens are separated by ASCII whitespace, `add` appends a missing token at the end, existing tokens keep their order. An unchanged list is not rewritten; a changed one is written with single spaces and without duplicates.
+- When the last token is removed, the `class` attribute is removed too.
+
+### Deferred
+
+- **Effective value** (an attribute versus the same property in `style`): it needs to know which attributes are presentation attributes, which is spec data, so it comes with v0.2 (B56). Even then it covers only the element itself: `<style>` sheets and inheritance are decided for colors in B38.
+- **Bulk operations across a tree** (rename, remove or set an attribute on every matching element) are not added: with `findAll` (B17) they are a one-line loop over plain objects, so a helper would only wrap plain access.
+- **Typed reads** (`getNumber`, `getLength`, …) depend on the spec data and come with v0.2.
 
 ## 7. Tooling
 

@@ -35,7 +35,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 | **parse**                              | Parse SVG into an AST                                                 | v0.1        |
 | **stringify**                          | Serialize an AST back to SVG                                          | v0.1        |
 | **ast**                                | `clone`, traversal, queries, type guards                              | v0.1        |
-| **attributes**                         | Helpers for `style`, `class` and bulk attribute edits                 | v0.1        |
+| **attributes**                         | Helpers for the `style` and `class` attributes                        | v0.1        |
 | **spec types**                         | Element and attribute types per SVG version, generated from the specs | v0.2        |
 | **colors**                             | Extract, normalize and replace colors                                 | v0.3        |
 | **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4        |
