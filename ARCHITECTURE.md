@@ -113,7 +113,10 @@ som/
 │   │   ├── escape.ts
 │   │   ├── *.test.ts
 │   │   └── index.ts
-│   ├── attributes/         # attribute helpers (§6)
+│   ├── attributes/            # attribute helpers (§6)
+│   │   ├── style.ts           #   parseStyle, stringifyStyle (value level)
+│   │   ├── style-property.ts  # get/set/removeStyleProperty
+│   │   ├── class.ts           #   has/add/remove/toggleClass
 │   │   └── index.ts
 │   ├── spec/               # element and attribute data per SVG version
 │   │   ├── generated/      # output of scripts/generate-spec, committed
@@ -216,10 +219,11 @@ Because attributes are already a plain object, `attributes` must add behavior th
 
 ### `style` attribute
 
-- **Value level** (rule 3 in §3, no `ast` import): `parseStyle(text)` returns a property map, `stringifyStyle(properties)` writes one as `name: value; name: value`. Declarations are split with a small CSS tokenizer, so `;` and `:` inside strings, `url(…)` and comments do not break them. Values are trimmed and kept as written, including `!important`.
+- **Value level** (rule 3 in §3, no `ast` import): `parseStyle(text)` returns a property map, `stringifyStyle(properties)` writes one as `name: value; name: value`. Declarations are split with a small CSS tokenizer, so `;` and `:` inside strings, `url(…)` and comments do not break them. Values are trimmed and kept as written, including `!important` and comments inside them. Invalid declarations (no `:`, an invalid name, an empty value) are skipped, as CSS does.
 - **Element level:** `getStyleProperty(el, name)`, `setStyleProperty(el, name, value)`, `removeStyleProperty(el, name)`. Only the affected declaration is rewritten; other declarations, their order, comments and spacing stay as they are.
 - **Duplicates** follow CSS: `get` returns the last declaration. `set` writes into the last one and removes the earlier ones, which only served as fallbacks for it. `remove` removes all of them.
-- **Names** are compared ASCII case-insensitively, except custom properties (`--name`), which are case-sensitive.
+- **Names** are compared ASCII case-insensitively, except custom properties (`--name`), which are case-sensitive. `parseStyle` returns them lowercased.
+- **Written declarations always read back.** `setStyleProperty` and `stringifyStyle` throw a `TypeError` for an empty value or one that does not close its strings, comments and brackets or contains a top-level `;`, so it cannot swallow the declarations after it.
 - When the last declaration is removed, the `style` attribute is removed too.
 
 ### `class` attribute
