@@ -1,5 +1,5 @@
 import type { SvgDoctype } from "../ast";
-import { readCharReference, type Entities } from "./entities";
+import { Entities, readCharReference } from "./entities";
 import { readComment, readInstruction } from "./markup";
 import { checkNoColon, checkQualifiedName } from "./namespaces";
 import type { Scanner } from "./scanner";
@@ -16,7 +16,7 @@ export function readDoctype(scanner: Scanner): {
   doctype: SvgDoctype;
   entities: Entities;
 } {
-  const entities: Entities = new Map();
+  const entities = new Entities();
   scanner.pos += 9;
   scanner.requireWhitespace();
 

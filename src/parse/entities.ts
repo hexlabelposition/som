@@ -1,11 +1,24 @@
 import { isXmlChar, scanName } from "../internal";
+import { MAX_ENTITY_EXPANSIONS, MAX_EXPANDED_LENGTH } from "./limits";
 import type { Scanner } from "./scanner";
 
 /**
  * General entities declared in the internal DTD subset: the replacement text,
  * or `null` for an external entity.
+ *
+ * Also counts how much expansion the document has used so far, to enforce
+ * the limits across all references.
  */
-export type Entities = Map<string, string | null>;
+export class Entities extends Map<string, string | null> {
+  /**
+   * Expansions of declared entities, nested ones included.
+   */
+  expansions = 0;
+  /**
+   * Characters produced by expanding declared entities.
+   */
+  expandedLength = 0;
+}
 
 const predefined = new Map([
   ["lt", "<"],
@@ -92,12 +105,16 @@ export function readReference(
   scanner.pos++;
   const name = scanner.readName();
   scanner.expect(";");
-  return expandEntity(scanner, entities, name, start, inAttribute, new Set());
+  return (
+    predefined.get(name) ??
+    expandEntity(scanner, entities, name, start, inAttribute, new Set())
+  );
 }
 
 /**
- * Returns the replacement text of the entity `name`, with the references in it
- * expanded. Errors are reported at `offset`, the reference in the input.
+ * Returns the replacement text of the declared entity `name`, with the
+ * references in it expanded. Errors are reported at `offset`, the reference in
+ * the input.
  */
 function expandEntity(
   scanner: Scanner,
@@ -107,9 +124,6 @@ function expandEntity(
   inAttribute: boolean,
   active: Set<string>,
 ): string {
-  const builtIn = predefined.get(name);
-  if (builtIn !== undefined) return builtIn;
-
   const value = entities.get(name);
   if (value === undefined) {
     scanner.fail("UNDEFINED_ENTITY", `Undefined entity &${name};`, offset);
@@ -126,7 +140,28 @@ function expandEntity(
   }
   active.add(name);
 
+  if (++entities.expansions > MAX_ENTITY_EXPANSIONS) {
+    scanner.fail(
+      "MAX_ENTITY_EXPANSIONS_EXCEEDED",
+      `More than ${String(MAX_ENTITY_EXPANSIONS)} entity expansions`,
+      offset,
+    );
+  }
+
   let result = "";
+  // Counts only the characters this entity adds itself, so text from nested
+  // entities is counted once, before the result grows past the limit.
+  const append = (text: string): void => {
+    entities.expandedLength += text.length;
+    if (entities.expandedLength > MAX_EXPANDED_LENGTH) {
+      scanner.fail(
+        "MAX_EXPANDED_LENGTH_EXCEEDED",
+        `Entities expand to more than ${String(MAX_EXPANDED_LENGTH)} characters`,
+        offset,
+      );
+    }
+    result += text;
+  };
   let chunkStart = 0;
   let index = 0;
   while (index < value.length) {
@@ -141,7 +176,7 @@ function expandEntity(
     }
 
     if (char === 0x26) {
-      result += value.slice(chunkStart, index);
+      append(value.slice(chunkStart, index));
       if (value.charCodeAt(index + 1) === 0x23) {
         const reference = scanCharReference(value, index);
         if (reference === undefined || !isXmlChar(reference.code)) {
@@ -151,7 +186,7 @@ function expandEntity(
             offset,
           );
         }
-        result += String.fromCodePoint(reference.code);
+        append(String.fromCodePoint(reference.code));
         index = reference.end;
       } else {
         const nameEnd = scanName(value, index + 1);
@@ -162,14 +197,20 @@ function expandEntity(
             offset,
           );
         }
-        result += expandEntity(
-          scanner,
-          entities,
-          value.slice(index + 1, nameEnd),
-          offset,
-          inAttribute,
-          active,
-        );
+        const nested = value.slice(index + 1, nameEnd);
+        const builtIn = predefined.get(nested);
+        if (builtIn === undefined) {
+          result += expandEntity(
+            scanner,
+            entities,
+            nested,
+            offset,
+            inAttribute,
+            active,
+          );
+        } else {
+          append(builtIn);
+        }
         index = nameEnd + 1;
       }
       chunkStart = index;
@@ -177,12 +218,13 @@ function expandEntity(
     }
 
     if (inAttribute && (char === 0x9 || char === 0xa || char === 0xd)) {
-      result += `${value.slice(chunkStart, index)} `;
+      append(`${value.slice(chunkStart, index)} `);
       chunkStart = index + 1;
     }
     index++;
   }
 
+  append(value.slice(chunkStart));
   active.delete(name);
-  return result + value.slice(chunkStart);
+  return result;
 }

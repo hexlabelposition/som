@@ -32,7 +32,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 - [x] **B17** `clone`, `walk` (with parent, skip, stop), `find` / `findAll`
 - [x] **B18** `parse`: strict, keeps whitespace (A10)
 - [x] **B19** `SvgParseError` with stable codes and position (A12)
-- [ ] **B20** Resource limits (A11): input length, nesting depth, entity expansions, expanded text length (`MAX_*_EXCEEDED` codes); external entities are already rejected in B18
+- [x] **B20** Resource limits (A11): input length, nesting depth, entity expansions, expanded text length (`MAX_*_EXCEEDED` codes)
 - [ ] **B21** `stringify`: writes the tree as is, with escaping and XML character checks
 - [ ] **B22** `attributes` helpers (A16): `parseStyle`, `stringifyStyle`, `get`/`set`/`removeStyleProperty`, `has`/`add`/`remove`/`toggleClass`
 - [ ] **B23** Round-trip tests from ARCHITECTURE §5 (A6), including property-based

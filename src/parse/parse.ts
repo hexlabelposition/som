@@ -7,7 +7,8 @@ import type {
 } from "../ast";
 import { isDeclarationStart, readDeclaration } from "./declaration";
 import { readDoctype } from "./doctype";
-import { readReference, type Entities } from "./entities";
+import { Entities, readReference } from "./entities";
+import { MAX_DEPTH, MAX_INPUT_LENGTH } from "./limits";
 import { readCData, readComment, readInstruction } from "./markup";
 import { Namespaces } from "./namespaces";
 import { Scanner } from "./scanner";
@@ -55,6 +56,13 @@ export function parse(input: string): SvgDocument {
   }
 
   const scanner: Scanner = new Scanner(input);
+  if (input.length > MAX_INPUT_LENGTH) {
+    scanner.fail(
+      "MAX_INPUT_LENGTH_EXCEEDED",
+      `Input is longer than ${String(MAX_INPUT_LENGTH)} characters`,
+      MAX_INPUT_LENGTH,
+    );
+  }
   if (input.charCodeAt(0) === 0xfeff) scanner.pos = 1;
 
   const document: SvgDocument = { type: "document", children: [] };
@@ -64,7 +72,7 @@ export function parse(input: string): SvgDocument {
 
   const namespaces = new Namespaces();
   const open: OpenElement[] = [];
-  let entities: Entities = new Map();
+  let entities = new Entities();
   let root: SvgElement | undefined;
   let doctype = false;
 
@@ -137,6 +145,12 @@ export function parse(input: string): SvgDocument {
     } else {
       if (parent === undefined && root !== undefined) {
         scanner.fail("MALFORMED_XML", "Only one root element is allowed");
+      }
+      if (open.length >= MAX_DEPTH) {
+        scanner.fail(
+          "MAX_DEPTH_EXCEEDED",
+          `Elements are nested deeper than ${String(MAX_DEPTH)} levels`,
+        );
       }
       const namespaceMark = namespaces.mark;
       const { element, selfClosing } = readStartTag(

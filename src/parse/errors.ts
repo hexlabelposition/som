@@ -14,6 +14,12 @@
  *   which is never loaded.
  * - `UNSUPPORTED_ENTITY`: an entity contains markup, or the doctype uses
  *   parameter entities.
+ * - `MAX_INPUT_LENGTH_EXCEEDED`: the input is longer than 64 Mi characters.
+ * - `MAX_DEPTH_EXCEEDED`: elements are nested deeper than 1,024 levels.
+ * - `MAX_ENTITY_EXPANSIONS_EXCEEDED`: entities are expanded more than 10,000
+ *   times, nested expansions included.
+ * - `MAX_EXPANDED_LENGTH_EXCEEDED`: entities expand to more than 1 Mi
+ *   characters in total.
  */
 export type SvgParseErrorCode =
   | "MALFORMED_XML"
@@ -21,7 +27,11 @@ export type SvgParseErrorCode =
   | "UNDECLARED_PREFIX"
   | "UNDEFINED_ENTITY"
   | "EXTERNAL_ENTITY"
-  | "UNSUPPORTED_ENTITY";
+  | "UNSUPPORTED_ENTITY"
+  | "MAX_INPUT_LENGTH_EXCEEDED"
+  | "MAX_DEPTH_EXCEEDED"
+  | "MAX_ENTITY_EXPANSIONS_EXCEEDED"
+  | "MAX_EXPANDED_LENGTH_EXCEEDED";
 
 /**
  * The error thrown by `parse()` for input it does not accept.
