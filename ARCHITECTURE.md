@@ -22,6 +22,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A14 | Parsing and serialization are separate modules, `parse` and `stringify`, that do not depend on each other                                   | Accepted |
 | A15 | No options for now: functions take only their data (`parse(input)`, `stringify(document)`); options come later as an optional last argument | Accepted |
 | A16 | v0.1 `attributes` helpers cover the `style` and `class` attributes; effective values and bulk operations are deferred (§6)                  | Accepted |
+| A17 | Mutating helpers return `void`; they return a value only when it tells the caller something new, like `toggleClass` (§2)                    | Accepted |
 
 ## 2. Data model
 
@@ -85,6 +86,7 @@ Rules:
 - **Doctype appears only at document level; CDATA only inside elements.** The two child unions encode this.
 - **No parent pointers.** The tree is plain data: it can be stored as JSON or sent to a worker. Traversal helpers pass the parent to callbacks instead.
 - **Mutation is the default.** Editing is plain object editing (`el.attributes.fill = "red"`, `delete el.attributes.style`, splicing `children`). Helper functions mutate too. `clone(node)` makes a deep copy.
+- **Mutating helpers return `void` (A17).** Returning the node would suggest a new copy, as in immutable APIs, and invite `const b = addClass(a, "x")` with `b === a` as a surprise; nested calls are no shorter than two statements anyway. A helper returns a value only when it tells the caller something they could not see before the call, as DOM does: `toggleClass` returns whether the class is present afterwards.
 
 New node fields may only be added as optional fields. Changing or removing an existing field is a major release.
 
@@ -207,7 +209,7 @@ These options are candidates for later and are not part of the API yet (A15):
 
 ## 6. Attributes module
 
-Because attributes are already a plain object, `attributes` must add behavior that plain access does not give, not wrap `el.attributes[name]` in functions. v0.1 contains helpers for the `style` and `class` attributes (A16). Return types of the mutating helpers follow B15.
+Because attributes are already a plain object, `attributes` must add behavior that plain access does not give, not wrap `el.attributes[name]` in functions. v0.1 contains helpers for the `style` and `class` attributes (A16). Mutating helpers return `void`, except `toggleClass` (A17).
 
 ### `style` attribute
 

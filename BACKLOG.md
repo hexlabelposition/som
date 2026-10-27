@@ -1,6 +1,6 @@
 # Backlog
 
-Milestones in the order they are planned. Not tied to dates. A1-A16 refer to decisions in [ARCHITECTURE.md](./ARCHITECTURE.md).
+Milestones in the order they are planned. Not tied to dates. A1-A17 refer to decisions in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 Items are numbered so early commits can point to them, for example `feat(parse): strict parsing (B18)`. Numbers are not reused.
 
@@ -27,7 +27,7 @@ An empty project that builds, lints and tests.
 Parse SVG into a plain-object tree, edit it, write it back without losing anything.
 
 - [x] **B14** Decide which `attributes` helpers go into v0.1 (ARCHITECTURE §6): `style` and `class` (A16)
-- [ ] **B15** Decide whether mutating helpers return `void` or the node
+- [x] **B15** Decide whether mutating helpers return `void` or the node: `void`, except `toggleClass` returns `boolean` (A17)
 - [x] **B16** Node types (A4), `getRoot`, type guards (`isElement`, `isText`, …)
 - [ ] **B17** `clone`, `walk` (with parent, skip, stop), `find` / `findAll`
 - [ ] **B18** `parse`: strict, keeps whitespace (A10)
