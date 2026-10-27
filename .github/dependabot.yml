@@ -39,3 +39,7 @@ updates:
         update-types: [version-update:semver-major]
       # Must match the Playwright image in ci.yml; updated together by hand.
       - dependency-name: playwright
+      # Corpus data: pinned so test results change only with the code.
+      - dependency-name: simple-icons
+      - dependency-name: bootstrap-icons
+      - dependency-name: "@tabler/icons"
