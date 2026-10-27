@@ -1,4 +1,4 @@
-import { isXmlWhitespace, scanName } from "../internal";
+import { isXmlWhitespace, scanName, scanXmlChar } from "../internal";
 import { createParseError, type SvgParseErrorCode } from "./errors";
 
 /**
@@ -98,20 +98,9 @@ export class Scanner {
    * fast path, and returns the index after it.
    */
   checkChar(index: number): number {
+    const next = scanXmlChar(this.input, index);
+    if (next !== -1) return next;
     const char = this.input.charCodeAt(index);
-    if (
-      (char >= 0x20 && char <= 0xd7ff) ||
-      char === 0x9 ||
-      char === 0xa ||
-      char === 0xd ||
-      (char >= 0xe000 && char <= 0xfffd)
-    ) {
-      return index + 1;
-    }
-    if (char >= 0xd800 && char <= 0xdbff) {
-      const next = this.input.charCodeAt(index + 1);
-      if (next >= 0xdc00 && next <= 0xdfff) return index + 2;
-    }
     const hex = char.toString(16).toUpperCase().padStart(4, "0");
     return this.fail("MALFORMED_XML", `Invalid character U+${hex}`, index);
   }

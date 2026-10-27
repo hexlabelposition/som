@@ -186,9 +186,11 @@ Subpath exports such as `@hexlabelposition/som/parse` and `@hexlabelposition/som
 
 ### Serialization (`stringify` module)
 
-- Works on any tree that matches the AST types, whether it came from `parse()` or was built by hand.
+- Works on any tree that matches the AST types, whether it came from `parse()` or was built by hand. Takes a document or a single node, such as `getRoot(document)`.
 - Writes the tree as it is: no indentation is added and no whitespace is removed.
-- Text and attribute values are escaped as needed, and every character is checked to be allowed in XML.
+- Attributes are written in double quotes; elements without children are written as `<name/>`.
+- Text and attribute values are escaped as needed. Characters that `parse()` would normalize are written as character references: `\r` in text, and tab, `\n` and `\r` in attribute values.
+- **Output always reads back.** Every character is checked to be allowed in XML, and anything that cannot be written so that `parse()` returns the same tree throws a `TypeError`: invalid names, `--` in a comment, `]]>` in CDATA, `?>` in a processing instruction, `\r` where it cannot be escaped, non-whitespace text outside the root element, or a document without exactly one root element. Namespace prefixes are not checked.
 
 ### Round-trip guarantee (A6)
 

@@ -85,3 +85,26 @@ export function scanName(text: string, start: number): number {
 
   return index;
 }
+
+/**
+ * Returns the index after the character at `index` if it is allowed in XML,
+ * or -1 if it is not. A surrogate pair counts as one character; a lone
+ * surrogate is not allowed.
+ */
+export function scanXmlChar(text: string, index: number): number {
+  const char = text.charCodeAt(index);
+  if (
+    (char >= 0x20 && char <= 0xd7ff) ||
+    char === 0x9 ||
+    char === 0xa ||
+    char === 0xd ||
+    (char >= 0xe000 && char <= 0xfffd)
+  ) {
+    return index + 1;
+  }
+  if (char >= 0xd800 && char <= 0xdbff) {
+    const next = text.charCodeAt(index + 1);
+    if (next >= 0xdc00 && next <= 0xdfff) return index + 2;
+  }
+  return -1;
+}

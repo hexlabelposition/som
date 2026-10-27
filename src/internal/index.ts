@@ -4,4 +4,5 @@ export {
   isXmlChar,
   isXmlWhitespace,
   scanName,
+  scanXmlChar,
 } from "./chars";
