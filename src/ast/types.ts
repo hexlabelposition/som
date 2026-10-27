@@ -195,6 +195,19 @@ export type SvgDocumentChild =
   SvgElement | SvgText | SvgComment | SvgInstruction | SvgDoctype;
 
 /**
+ * A node that has children: the document or an element.
+ *
+ * Traversal helpers pass it to callbacks as the parent of the current node.
+ */
+export type SvgParent = SvgDocument | SvgElement;
+
+/**
+ * A node that can appear in any `children` array: {@link SvgNode} or
+ * {@link SvgDocumentChild}.
+ */
+export type SvgChild = SvgNode | SvgDocumentChild;
+
+/**
  * The fields of the XML declaration.
  *
  * @example

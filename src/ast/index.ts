@@ -1,5 +1,6 @@
 export type {
   SvgCData,
+  SvgChild,
   SvgComment,
   SvgDoctype,
   SvgDocument,
@@ -7,9 +8,11 @@ export type {
   SvgElement,
   SvgInstruction,
   SvgNode,
+  SvgParent,
   SvgText,
   XmlDeclaration,
 } from "./types";
+export { clone } from "./clone";
 export {
   isCData,
   isComment,
@@ -19,3 +22,4 @@ export {
   isText,
 } from "./guards";
 export { getRoot } from "./root";
+export { find, findAll, walk } from "./walk";
