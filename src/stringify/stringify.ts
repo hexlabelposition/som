@@ -28,7 +28,7 @@ import { checkRaw, escapeAttribute, escapeText } from "./escape";
  * @throws {TypeError} If the tree cannot be written so that it reads back the
  *   same: a name that is not a valid XML name, a character not allowed in
  *   XML, `--` in a comment, `]]>` in CDATA, `?>` in a processing instruction,
- *   non-whitespace text outside the root element, or a document without
+ *   text other than spaces, tabs and line feeds outside the root element, or a document without
  *   exactly one root element.
  */
 export function stringify(node: SvgDocument | SvgChild): string {
@@ -48,8 +48,10 @@ function writeDocument(document: SvgDocument): string {
       root = true;
     } else if (child.type === "doctype" && root) {
       throw new TypeError("The doctype must come before the root element");
-    } else if (child.type === "text" && !isWhitespace(child.value)) {
-      throw new TypeError("Text outside the root element must be whitespace");
+    } else if (child.type === "text" && !isDocumentWhitespace(child.value)) {
+      throw new TypeError(
+        "Text outside the root element must be spaces, tabs or line feeds",
+      );
     }
     output = writeChild(child, output);
   }
@@ -161,9 +163,15 @@ function checkName(name: string, kind: string): void {
   }
 }
 
-function isWhitespace(text: string): boolean {
+/**
+ * Checks that text can stand outside the root element. `\r` is not allowed:
+ * `parse()` would turn it into `\n`, and the reference `&#13;` is not allowed
+ * there.
+ */
+function isDocumentWhitespace(text: string): boolean {
   for (let index = 0; index < text.length; index++) {
-    if (!isXmlWhitespace(text.charCodeAt(index))) return false;
+    const char = text.charCodeAt(index);
+    if (char !== 0x20 && char !== 0x9 && char !== 0xa) return false;
   }
   return true;
 }

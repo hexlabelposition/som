@@ -87,6 +87,10 @@ describe("documents", () => {
       document({ type: "text", value: "x" }, element("svg")),
       "text outside the root",
     ],
+    [
+      document({ type: "text", value: "\r\n" }, element("svg")),
+      "'\\r' outside the root",
+    ],
   ])("rejects a document with %#: %s", (input) => {
     expect(() => stringify(input)).toThrow(TypeError);
   });
