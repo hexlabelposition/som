@@ -19,6 +19,10 @@
  * ```
  */
 export interface SvgDocument {
+  /**
+   * Identifies the document, the top of the tree. Check it to tell a
+   * document from a node, as in {@link SvgParent}.
+   */
   type: "document";
   /**
    * The `<?xml …?>` declaration at the start of the document.
@@ -52,6 +56,10 @@ export interface SvgDocument {
  * ```
  */
 export interface SvgElement {
+  /**
+   * Identifies the node kind. Check it, or call `isElement()`, to narrow a node
+   * to this type.
+   */
   type: "element";
   /**
    * The qualified name as written in the source, prefix included.
@@ -83,6 +91,10 @@ export interface SvgElement {
  * ```
  */
 export interface SvgText {
+  /**
+   * Identifies the node kind. Check it, or call `isText()`, to narrow a node to
+   * this type.
+   */
   type: "text";
   /**
    * The text with character and entity references decoded.
@@ -103,6 +115,10 @@ export interface SvgText {
  * ```
  */
 export interface SvgCData {
+  /**
+   * Identifies the node kind. Check it, or call `isCData()`, to narrow a node
+   * to this type.
+   */
   type: "cdata";
   /**
    * The content between `<![CDATA[` and `]]>`, as written.
@@ -120,6 +136,10 @@ export interface SvgCData {
  * ```
  */
 export interface SvgComment {
+  /**
+   * Identifies the node kind. Check it, or call `isComment()`, to narrow a node
+   * to this type.
+   */
   type: "comment";
   /**
    * The content between `<!--` and `-->`, including surrounding spaces.
@@ -144,6 +164,10 @@ export interface SvgComment {
  * ```
  */
 export interface SvgInstruction {
+  /**
+   * Identifies the node kind. Check it, or call `isInstruction()`, to narrow a
+   * node to this type.
+   */
   type: "instruction";
   /**
    * The name right after `<?`.
@@ -170,6 +194,10 @@ export interface SvgInstruction {
  * ```
  */
 export interface SvgDoctype {
+  /**
+   * Identifies the node kind. Check it, or call `isDoctype()`, to narrow a node
+   * to this type.
+   */
   type: "doctype";
   /**
    * Everything between `<!DOCTYPE` and the closing `>`, as written, including

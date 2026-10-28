@@ -125,6 +125,7 @@ som/
 │   ├── paths/              # later
 │   └── internal/           # shared helpers (XML character rules, …), never exported
 ├── test/
+│   ├── api-docs.test.ts    # every public export has TSDoc and a return type
 │   ├── corpus.test.ts      # every fixture parses, round-trips, prints stably
 │   ├── round-trip.test.ts  # property-based parse ↔ stringify tests (A6)
 │   └── fixtures/           # Figma, Illustrator, Inkscape, SVGO inputs + licenses/

@@ -75,6 +75,20 @@ export function find<T extends SvgChild>(
   parent: SvgParent,
   test: (node: SvgChild, parent: SvgParent, index: number) => node is T,
 ): T | undefined;
+/**
+ * Returns the first descendant in document order that passes the test, or
+ * `undefined` if there is none.
+ *
+ * The test gets the same arguments as the {@link walk} callback.
+ *
+ * @example
+ * ```ts
+ * const filled = find(
+ *   document,
+ *   (node) => isElement(node) && "fill" in node.attributes,
+ * );
+ * ```
+ */
 export function find(
   parent: SvgParent,
   test: (node: SvgChild, parent: SvgParent, index: number) => boolean,
@@ -110,6 +124,20 @@ export function findAll<T extends SvgChild>(
   parent: SvgParent,
   test: (node: SvgChild, parent: SvgParent, index: number) => node is T,
 ): T[];
+/**
+ * Returns every descendant that passes the test, in document order.
+ *
+ * The test gets the same arguments as the {@link walk} callback.
+ *
+ * @example
+ * ```ts
+ * // Every node directly inside a <defs> element.
+ * const definitions = findAll(
+ *   document,
+ *   (_node, parent) => parent.type === "element" && parent.name === "defs",
+ * );
+ * ```
+ */
 export function findAll(
   parent: SvgParent,
   test: (node: SvgChild, parent: SvgParent, index: number) => boolean,

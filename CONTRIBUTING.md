@@ -60,7 +60,7 @@ When adding a folder, register it in the `modules` table at the top of `eslint.c
 
 ### Public API
 
-- Every exported function has an explicit return type and a TSDoc comment.
+- Every exported function has an explicit return type and a TSDoc comment. `test/api-docs.test.ts` checks every export of `src/index.ts`, including interface fields and class members.
 - Public types are strict: no `any`, and no wider types than the data allows.
 - Parse error codes are part of the API (A12): existing codes change only in a major release, new codes may appear in a minor one.
 - Changing or removing anything exported is a breaking change and needs a decision in ARCHITECTURE.
