@@ -7,6 +7,7 @@ export default defineConfig({
   format: "esm",
   tsconfig: "tsconfig.lib.json",
   dts: true,
-  publint: true,
+  // Warnings fail the build too; suggestions are only printed.
+  publint: { strict: true },
   attw: { profile: "esm-only", level: "error" },
 });

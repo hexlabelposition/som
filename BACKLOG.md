@@ -41,7 +41,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 - [x] **B26** Benchmarks for `parse` and `stringify` vs svgson and svg-parser
 - [x] **B27** Speed claims in README come only from the benchmarks
 - [x] **B28** Every public export has TSDoc and an explicit return type
-- [ ] **B29** publint and attw pass
+- [x] **B29** publint and attw pass
 - [ ] **B54** Right before v0.1.0: create the `npm` GitHub environment (only `v*` tags) and the trusted publisher with `npm trust github … --allow-stage-publish`; the first publish has to follow within 2 days
 - [ ] **B30** Release v0.1.0
 
