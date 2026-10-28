@@ -23,6 +23,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A15 | No options for now: functions take only their data (`parse(input)`, `stringify(document)`); options come later as an optional last argument | Accepted |
 | A16 | v0.1 `attributes` helpers cover the `style` and `class` attributes; effective values and bulk operations are deferred (§6)                  | Accepted |
 | A17 | Mutating helpers return `void`; they return a value only when it tells the caller something new, like `toggleClass` (§2)                    | Accepted |
+| A18 | Spec data comes from pinned W3C sources; browser support from MDN BCD is a separate layer that never changes what is valid (§11)            | Accepted |
 
 ## 2. Data model
 
@@ -278,7 +279,7 @@ Because attributes are already a plain object, `attributes` must add behavior th
 - **Runtime dependencies:** none.
 - **GitHub Actions:** pinned to commit SHAs, updated weekly by Dependabot with a 7-day cooldown.
 - **Tooling** (tsdown, vitest, eslint, …): caret ranges (`^`), `bun.lock` committed. Exception: TypeScript uses a tilde range (`~`), because typescript-eslint supports only specific TypeScript minor versions. Updated weekly by Dependabot as one grouped pull request with a 7-day cooldown; TypeScript minor and major updates are ignored and done by hand.
-- **Anything that affects test or benchmark results** - benchmark competitors (svgson, svg-parser) and icon sets - is pinned to **exact versions**, so snapshots and benchmark numbers change only when the code changes. Dependabot ignores these packages; they are updated by hand.
+- **Anything that affects test or benchmark results or generated data** - benchmark competitors (svgson, svg-parser), icon sets and spec sources (§11) - is pinned to **exact versions**, so snapshots and benchmark numbers change only when the code changes. Dependabot ignores these packages; they are updated by hand.
 - **`@types/node`** follows the minimum supported Node.js version (§9), so its major updates are ignored by Dependabot and done by hand when the minimum changes.
 - **Docker images** in workflows (actionlint, Playwright) are pinned to digests and updated by hand.
 - **Playwright** is pinned to an exact version that matches the `mcr.microsoft.com/playwright` image the browser tests run in. The package and the image digest in `ci.yml` are updated together by hand.
@@ -298,3 +299,31 @@ Because attributes are already a plain object, `attributes` must add behavior th
 - Interpreting the DTD beyond text entities, or resolving namespace URIs.
 - Full SVGO-level optimization in early versions.
 - Complete coverage of the SVG specification before v1.0.
+
+## 11. Spec data
+
+`src/spec/generated/` is built by `scripts/generate-spec` from pinned sources and committed (B32). The sources are chosen in A18.
+
+### Versions
+
+- **SVG 1.1** is SVG 1.1 Second Edition (2011). It keeps the elements SVG 2 dropped, such as the SVG fonts, `animateColor`, `tref`, `altGlyph`, `cursor` and `color-profile`.
+- **SVG 2** is the editor's draft in [w3c/svgwg](https://github.com/w3c/svgwg) at a pinned commit, not the 2018 Candidate Recommendation: the draft is what the working group maintains and what MDN links to. It includes the modules SVG 2 relies on: Filter Effects, CSS Masking and SVG Animations. The animation elements (`animate`, `set`, `animateMotion`, `animateTransform`, `mpath`) are defined only in SVG Animations, not in the main definitions file.
+
+### Sources
+
+| Data                                    | SVG 1.1                                            | SVG 2                                                                                                                           |
+| --------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Elements and their attributes           | Flat DTD `svg11-flat-20110816.dtd`                 | svgwg `master/definitions.xml`, `definitions-filters.xml`, `definitions-masking.xml`, `specs/animations/master/definitions.xml` |
+| Attribute groups (core, conditional, …) | DTD parameter entities such as `%SVG.Core.attrib;` | `<attributecategory>` entries                                                                                                   |
+| Presentation attributes                 | `%SVG.Presentation.attrib;`                        | `<property>` entries                                                                                                            |
+| Value types (B34)                       | DTD datatype entities such as `%Length.datatype;`  | Decided in B34; the definitions files have no value types                                                                       |
+| Cross-check of element names            | -                                                  | `@webref/elements` (`SVG2`, `filter-effects-1`, `css-masking-1`, `svg-animations`)                                              |
+| Browser support (separate layer)        | -                                                  | `@mdn/browser-compat-data`: `svg.elements` and `svg.global_attributes`                                                          |
+
+### Rules
+
+- **Validity comes from the specs only.** Whether an element or attribute exists in a version is decided by the W3C sources. Browser support never adds or removes anything: the browsers do not implement all of SVG 2, but a document that uses an unsupported feature is still valid SVG 2.
+- **Browser support is separate data.** BCD's status (`deprecated`, `standard_track`) and the first supported version per engine are generated next to the spec data, for functions that ask for them explicitly. It does not narrow the v0.2 types.
+- **webref is a check, not a source.** The generator fails when the element names it reads from svgwg differ from `@webref/elements`, which catches a moved or renamed definitions file.
+- **Pinning (§8).** svgwg is pinned to a commit SHA, the DTD to its dated URL and a SHA-256 checksum, and the npm packages to exact versions ignored by Dependabot. Updating a source is a separate commit that regenerates the data.
+- **Licenses.** The svgwg files are under the W3C Document License, the DTD under its W3C copyright notice, BCD under CC0 and webref under MIT. Only facts such as names, categories and types are generated, no spec text, and each generated file names its sources and their licenses in a header.

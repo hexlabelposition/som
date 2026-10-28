@@ -49,7 +49,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 
 Know which elements and attributes exist in each SVG version.
 
-- [ ] **B31** Decide the data sources for SVG 1.1 and SVG 2 (W3C, MDN BCD, webref), given browsers don't implement all of SVG 2
+- [x] **B31** Decide the data sources for SVG 1.1 and SVG 2 (W3C, MDN BCD, webref), given browsers don't implement all of SVG 2
 - [ ] **B32** `scripts/generate-spec` → `src/spec/generated` (committed, reproducible)
 - [ ] **B33** Types: allowed attributes per element and SVG version
 - [ ] **B34** Value types per attribute (length, color, path data, enums, …)
