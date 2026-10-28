@@ -85,7 +85,7 @@ Read, write and normalize path data (`d`).
 - [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
 - [ ] **B51** Subpath exports (`@hexlabelposition/som/parse`, …) once modules settle (A7)
 - [ ] **B55** Consider tsdown `exports: true` to generate `exports` from the entries once there are subpath exports (B51)
-- [ ] **B52** Deno in CI
+- [x] **B52** Deno in CI: smoke test of the built package; the full test suite does not run on Deno yet
 
 ## Open questions
 
