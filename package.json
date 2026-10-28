@@ -1,7 +1,7 @@
 {
   "name": "@hexlabelposition/som",
-  "version": "0.0.0",
-  "description": "Zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects",
+  "version": "0.1.0",
+  "description": "Zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects.",
   "keywords": [
     "svg",
     "ast",

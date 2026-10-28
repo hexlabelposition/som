@@ -3,7 +3,7 @@
 **som (SVG Object Model)** is a zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects in any JavaScript runtime.
 
 > [!WARNING]
-> **Status: pre-alpha.** som is in the design phase, and every API shown below is a draft that may change. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
+> **Status: early development (0.x).** v0.1 covers parsing, serialization, tree helpers and the `style` and `class` attributes. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
 
 ## Why
 
@@ -16,10 +16,10 @@ som aims to replace them with one coherent toolkit built around a single documen
 - **One library, one model.** Parse once, run any number of operations on the same tree, serialize once.
 - **SVG as plain objects.** The tree is ordinary data with no DOM nodes or parent references: edit it with plain property access, store it as JSON or send it to a worker.
 - **Lossless round trips.** Element order, text, comments, CDATA, processing instructions, the XML declaration, DOCTYPE, namespaces, attribute order, and unknown elements and attributes all survive `parse` → `stringify`.
-- **Type-safe.** Strict public types, including element and attribute types generated from the SVG specifications.
+- **Type-safe.** Strict public types for the whole tree. Element and attribute types generated from the SVG specifications are planned for v0.2.
 - **Fast parsing.** One pass over the input. In the benchmarks, `parse` is 3-4× faster than svg-parser and 6-13× faster than svgson; see [Performance](#performance).
 - **Zero dependencies.** Pure JavaScript with no runtime dependencies and no DOM requirement.
-- **ESM-only and tree-shakeable.** The API is made of independent functions without side effects, so a bundle contains only what you import: using `parse` does not pull in `stringify` or `colors`.
+- **ESM-only and tree-shakeable.** The API is made of independent functions without side effects, so a bundle contains only what you import: using `parse` does not pull in `stringify` or the `attributes` helpers.
 
 ## Guarantees
 
@@ -28,22 +28,28 @@ som aims to replace them with one coherent toolkit built around a single documen
 - **No implicit interpretation.** Attribute values stay strings until a module explicitly parses them.
 - **Tree-level round trips.** The tree is kept, not the exact source text: quote style, entity spelling and whitespace inside tags are normalized.
 
-## Planned features
+## Features
 
-| Area                                   | What it covers                                                        | Planned for |
-| -------------------------------------- | --------------------------------------------------------------------- | ----------- |
-| **parse**                              | Parse SVG into an AST                                                 | v0.1        |
-| **stringify**                          | Serialize an AST back to SVG                                          | v0.1        |
-| **ast**                                | `clone`, traversal, queries, type guards                              | v0.1        |
-| **attributes**                         | Helpers for the `style` and `class` attributes                        | v0.1        |
-| **spec types**                         | Element and attribute types per SVG version, generated from the specs | v0.2        |
-| **colors**                             | Extract, normalize and replace colors                                 | v0.3        |
-| **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4        |
-| **geometry, transforms, optimization** | Bounds, lengths, matrices, cleanup                                    | later       |
+| Area                                   | What it covers                                                        | Version |
+| -------------------------------------- | --------------------------------------------------------------------- | ------- |
+| **parse**                              | Parse SVG into an AST                                                 | v0.1    |
+| **stringify**                          | Serialize an AST back to SVG                                          | v0.1    |
+| **ast**                                | `clone`, traversal, queries, type guards                              | v0.1    |
+| **attributes**                         | Helpers for the `style` and `class` attributes                        | v0.1    |
+| **spec types**                         | Element and attribute types per SVG version, generated from the specs | v0.2    |
+| **colors**                             | Extract, normalize and replace colors                                 | v0.3    |
+| **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4    |
+| **geometry, transforms, optimization** | Bounds, lengths, matrices, cleanup                                    | later   |
 
-Versions show the intended order, not dates.
+v0.1 is released. Later versions show the intended order, not dates.
 
-## Usage (draft API)
+## Install
+
+```sh
+npm install @hexlabelposition/som
+```
+
+## Usage
 
 ```ts
 import { parse, stringify, getRoot } from "@hexlabelposition/som";
