@@ -1,7 +1,10 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": ["node"],
+    // Benchmarks import the package by name; vitest.bench.config.ts points
+    // it at dist/, type checking uses the sources so it runs before a build.
+    "paths": { "@hexlabelposition/som": ["./src/index.ts"] }
   },
   "include": ["scripts", "*.config.ts"]
 }

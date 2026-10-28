@@ -43,3 +43,6 @@ updates:
       - dependency-name: simple-icons
       - dependency-name: bootstrap-icons
       - dependency-name: "@tabler/icons"
+      # Benchmark competitors: pinned so numbers change only with the code.
+      - dependency-name: svgson
+      - dependency-name: svg-parser

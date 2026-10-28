@@ -18,18 +18,20 @@ Playwright builds its browsers for Ubuntu and Debian. On other Linux distributio
 
 ## Commands
 
-| Command                | What it does                                                |
-| ---------------------- | ----------------------------------------------------------- |
-| `bun run build`        | Build `dist/` with tsdown, then run publint and attw        |
-| `bun run typecheck`    | Type-check the library, test and script projects            |
-| `bun run lint`         | Lint with ESLint, including module boundary rules           |
-| `bun run lint:fix`     | Lint and apply ESLint's automatic fixes                     |
-| `bun run format`       | Format all files with Prettier                              |
-| `bun run format:check` | Check formatting of everything except Markdown              |
-| `bun run docs:check`   | Check formatting of Markdown files                          |
-| `bun run test`         | Run all tests: Node.js and every browser                    |
-| `bun run test:node`    | Run the tests in Node.js                                    |
-| `bun run test:browser` | Run the tests in browsers; add `--browser chromium` for one |
+| Command                | What it does                                                 |
+| ---------------------- | ------------------------------------------------------------ |
+| `bun run build`        | Build `dist/` with tsdown, then run publint and attw         |
+| `bun run typecheck`    | Type-check the library, test and script projects             |
+| `bun run lint`         | Lint with ESLint, including module boundary rules            |
+| `bun run lint:fix`     | Lint and apply ESLint's automatic fixes                      |
+| `bun run format`       | Format all files with Prettier                               |
+| `bun run format:check` | Check formatting of everything except Markdown               |
+| `bun run docs:check`   | Check formatting of Markdown files                           |
+| `bun run test`         | Run all tests: Node.js and every browser                     |
+| `bun run test:node`    | Run the tests in Node.js                                     |
+| `bun run test:browser` | Run the tests in browsers; add `--browser chromium` for one  |
+| `bun run bench`        | Build, then run the benchmarks against svgson and svg-parser |
+| `bun run bench:bun`    | Run the benchmarks on the Bun runtime instead of Node.js     |
 
 Before pushing, run `lint`, `format:check`, `docs:check`, `typecheck` and `test:node`. CI runs the same checks and the tests on every supported Node.js, Bun and browser version.
 
@@ -74,7 +76,7 @@ When adding a folder, register it in the `modules` table at the top of `eslint.c
 ## Performance
 
 - No regexes over the whole document, no intermediate token arrays where a single pass works, no repeated parsing within one operation chain.
-- Benchmark suites live in `scripts/benchmarks/`. They measure the built `dist/` and compare `parse` and `stringify` separately with svgson and svg-parser.
+- Benchmark suites live in `scripts/benchmarks/`. They measure the built `dist/` and compare `parse` and `stringify` separately with svgson and svg-parser (svg-parser has no serializer, so `stringify` is compared with svgson only). Run them with `bun run bench` on Node.js or `bun run bench:bun` on Bun; results differ between runtimes.
 - Any claim about speed in the docs comes from the benchmark suite. A change that is meant to make something faster includes the numbers before and after.
 
 ## Documentation
