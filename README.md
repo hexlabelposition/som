@@ -17,7 +17,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 - **SVG as plain objects.** The tree is ordinary data with no DOM nodes or parent references: edit it with plain property access, store it as JSON or send it to a worker.
 - **Lossless round trips.** Element order, text, comments, CDATA, processing instructions, the XML declaration, DOCTYPE, namespaces, attribute order, and unknown elements and attributes all survive `parse` → `stringify`.
 - **Type-safe.** Strict public types, including element and attribute types generated from the SVG specifications.
-- **Fast.** Single-pass parsing and minimal allocations, benchmarked against svgson and svg-parser. Published numbers come only from the benchmark suite.
+- **Fast parsing.** One pass over the input. In the benchmarks, `parse` is 3-4× faster than svg-parser and 6-13× faster than svgson; see [Performance](#performance).
 - **Zero dependencies.** Pure JavaScript with no runtime dependencies and no DOM requirement.
 - **ESM-only and tree-shakeable.** The API is made of independent functions without side effects, so a bundle contains only what you import: using `parse` does not pull in `stringify` or `colors`.
 
@@ -72,6 +72,20 @@ const copy = clone(doc);
 ```
 
 Malformed input throws an `SvgParseError` with a stable `code` and the `line`, `column` and `offset` of the problem.
+
+## Performance
+
+All numbers here come from the benchmark suite in [`scripts/benchmarks/`](./scripts/benchmarks/), run with `bun run bench` against the built package. Compared with svgson 5.3.1 and svg-parser 2.1.0 on Node.js 26.8.1, Linux, Intel Core i5-11400H. Each cell shows how many times more operations per second som runs; below 1× means som is slower.
+
+| Input                          | `parse` vs svg-parser | `parse` vs svgson | `stringify` vs svgson |
+| ------------------------------ | --------------------- | ----------------- | --------------------- |
+| Bootstrap Icons, 2,078 files   | 4.0×                  | 13.5×             | 0.8×                  |
+| Inkscape export, 4 KB          | 3.0×                  | 6.6×              | 1.5×                  |
+| Bootstrap Icons sprite, 1.1 MB | 3.7×                  | 13.4×             | 0.75×                 |
+
+svg-parser has no serializer. svgson's tree leaves out the XML declaration, comments, DOCTYPE, processing instructions and whitespace-only text, so it has less to write; som keeps all of them and checks that every character is allowed in XML.
+
+On Bun 1.4.0 (`bun run bench:bun`), som was faster than both libraries in every case, but the results varied more between runs. Numbers depend on the machine and the runtime, so run the benchmarks to compare on yours.
 
 ## Runtimes
 
