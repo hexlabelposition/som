@@ -37,7 +37,7 @@ Parse SVG into a plain-object tree, edit it, write it back without losing anythi
 - [x] **B22** `attributes` helpers (A16): `parseStyle`, `stringifyStyle`, `get`/`set`/`removeStyleProperty`, `has`/`add`/`remove`/`toggleClass`
 - [x] **B23** Round-trip tests from ARCHITECTURE §5 (A6), including property-based
 - [x] **B24** Test corpus: icon sets and editor exports (Figma, Illustrator, Inkscape, SVGO), with licenses
-- [ ] **B25** Every corpus file parses, round-trips and produces stable output
+- [x] **B25** Every corpus file parses, round-trips and produces stable output
 - [ ] **B26** Benchmarks for `parse` and `stringify` vs svgson and svg-parser
 - [ ] **B27** Speed claims in README come only from the benchmarks
 - [ ] **B28** Every public export has TSDoc and an explicit return type
