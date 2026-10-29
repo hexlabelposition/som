@@ -102,9 +102,9 @@ export interface SvgAngle {
  * Length units by their lowercase spelling, mapped to the canonical one: CSS
  * units are ASCII case-insensitive, and `Q` is written in uppercase.
  *
- * The tables are object literals, not `new Map(…)`, so a bundle that does not
- * use them can drop them: a call at the top level of a module may have side
- * effects as far as a bundler knows.
+ * The tables are written out as literals, so a bundle that does not use them
+ * can drop them. Building one with a call such as `[…].map(…)` at the top
+ * level would keep it in every bundle (ARCHITECTURE §4).
  */
 const lengthUnits: Readonly<Record<string, SvgLengthUnit>> = {
   "%": "%",

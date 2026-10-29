@@ -62,7 +62,6 @@ export interface SvgPreserveAspectRatio {
   meetOrSlice: "meet" | "slice";
 }
 
-// An array literal, not a Set, so a bundle that does not use it can drop it.
 const aligns: readonly string[] = [
   "none",
   "xMinYMin",

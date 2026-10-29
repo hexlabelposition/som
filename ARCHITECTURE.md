@@ -173,7 +173,7 @@ som/
 Modules are not published as subpath exports such as `@hexlabelposition/som/spec` or `@hexlabelposition/som/paths` (A7). Bundlers already drop what is not imported, so subpaths would not make bundles smaller; they would only add import paths to choose from and entries to keep stable, since removing or renaming a subpath is a breaking change. These rules keep the single entry point workable:
 
 1. Export names are unique across the library, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
-2. Modules have no side effects at import time and no shared state, so unused code is tree-shaken. Top-level values are literals, not calls such as `new Map([…])` or `[…].map(…)`: a bundler cannot tell that a call has no side effects, so it keeps the call and everything it uses in every bundle, even one that imports only `parse`.
+2. Modules have no side effects at import time and no shared state, so unused code is tree-shaken. Top-level values are built from literals only: `new Map([…])` and `new Set([…])` of literals are fine, but no other calls, such as `[…].map(…)`. Bundlers know the first kind has no side effects and drop it when unused; they cannot tell that of an arbitrary call, so they keep it, and everything it uses, in every bundle, even one that imports only `parse` (checked with Bun 1.4 and rolldown).
 
 The one possible exception is a React integration, which is not planned yet. It would need `react` as a peer dependency, which the main entry point cannot have (A2), so it would be a separate entry point, `@hexlabelposition/som/react`, or a separate package (§3, rule 5). That choice is made if the integration is added.
 
