@@ -79,6 +79,20 @@ const copy = clone(doc);
 
 Malformed input throws an `SvgParseError` with a stable `code` and the `line`, `column` and `offset` of the problem.
 
+Element and attribute names can be checked against SVG 1.1 and SVG 2, as types and at run time:
+
+```ts
+import {
+  isSvgAttributeName,
+  type SvgAttributeName,
+} from "@hexlabelposition/som";
+
+isSvgAttributeName("rect", "rx"); // true
+isSvgAttributeName("rect", "enable-background", "2"); // false: SVG 1.1 only
+
+const name: SvgAttributeName<"rect", "2"> = "paint-order";
+```
+
 ## Performance
 
 All numbers here come from the benchmark suite in [`scripts/benchmarks/`](./scripts/benchmarks/), run with `bun run bench` against the built package. Compared with svgson 5.3.1 and svg-parser 2.1.0 on Node.js 26.8.1, Linux, Intel Core i5-11400H. Each cell shows how many times more operations per second som runs; below 1× means som is slower.
