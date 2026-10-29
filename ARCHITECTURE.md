@@ -27,6 +27,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A19 | The API is exported as one namespace object, `import { s } from "@hexlabelposition/som"`, as zod does with `z`, instead of separate named functions (§4, B57) | Proposed |
 | A20 | Spec types take the SVG version as an optional last parameter; without it, a name is valid if any version defines it (§11)                                    | Accepted |
 | A21 | Typed reads parse by syntax, without the spec data; a missing or invalid value is `undefined`, and units are kept as written (§6)                             | Accepted |
+| A22 | Colors are read and replaced where they are written, in attributes, `style` and `<style>`; selectors, inheritance and `url(#…)` are not resolved (§12)        | Accepted |
 
 ## 2. Data model
 
@@ -290,7 +291,7 @@ Colors, paint, path data and transforms have their own milestones (v0.3, v0.4, B
 
 - **The cascade on the element.** A declaration in `style` wins over the presentation attribute, and among declarations the last one wins unless an earlier one is `!important`, as in `getStyleProperty`. `!important` is split off the value into `important`.
 - **Only real presentation attributes count.** The attribute is used only if it is a presentation attribute on this element in the version, or in any version when it is left out (A20): in the presentation group, or one of the element's own, such as `cx` on `circle` in SVG 2. An attribute on an unknown or prefixed element does not count; a declaration in `style` always does, for any property.
-- **Only the element.** `<style>` sheets, inheritance and initial values are not taken into account; for colors they are decided in B38. Values are not checked against the property's syntax, and `inherit` and other CSS-wide keywords are returned as written. `source` says where to write a changed value, for `replaceColor` (B41).
+- **Only the element.** `<style>` sheets, inheritance and initial values are not taken into account, and the colors module does not compute them either (§12). Values are not checked against the property's syntax, and `inherit` and other CSS-wide keywords are returned as written. `source` says where a value is written, so a caller can change it in the same place.
 
 ### Deferred
 
@@ -438,3 +439,35 @@ type C = SvgAttributeName<"altGlyph", "2">; // error: altGlyph is not in SVG 2
 - **Type guards.** `isSvgElementName` narrows its argument to `SvgElementName<V>`. `isSvgAttributeName` narrows `attribute` to `SvgAttributeName<E, V>` only when the element name is a literal known at compile time; an overload for an element name known only at run time returns a plain `boolean`, since a guard there would narrow to `never` or leave nothing for the `false` branch.
 - **Lookups** use `Object.hasOwn` on the generated objects, so names such as `constructor` or `__proto__` never match `Object.prototype`. Nothing is computed or cached at import time (§4).
 - **Bundle size.** The data is only in a bundle that imports one of these functions: a bundle of `parse` alone does not change. `isSvgAttributeName` alone is about 38 kB minified, 6 kB gzipped (Bun 1.4 `bun build --minify`), because the generated objects also carry the value types (B34) that B36 needs. Splitting names from value types is possible later without an API change.
+
+## 12. Colors
+
+The colors module finds, normalizes and replaces colors (v0.3). It works with colors where they are written in the document, not with the color an element is rendered in (A22): computing that needs the whole CSS cascade, which som does not implement (§10).
+
+### Where colors are read
+
+| Source                    | Example                       | Read and replaced                                       |
+| ------------------------- | ----------------------------- | ------------------------------------------------------- |
+| Presentation attribute    | `fill="#f00"`                 | Yes                                                     |
+| `style` attribute         | `style="fill: #f00"`          | Yes, every declaration, including overridden duplicates |
+| `<style>` element         | `.st0 { fill: #f00; }`        | Yes, in declaration values only, never in selectors     |
+| Paint server reference    | `fill="url(#g)"`              | The reference is reported, not followed                 |
+| Fallback after `url(…)`   | `fill="url(#g) #f00"`         | Yes, the fallback color                                 |
+| Gradient stops            | `<stop stop-color="#f00"/>`   | Yes, as an attribute of the `stop` element              |
+| Animation values          | `<animate to="#f00"/>`        | No, deferred                                            |
+| Other attributes and text | `<text>#f00</text>`, `data-*` | No                                                      |
+
+- **Color properties are a fixed list:** `color`, `fill`, `stroke`, `stop-color`, `flood-color` and `lighting-color`, the presentation attributes with the `color` or `paint` value type (§11) in both versions. A test checks the list against the spec data, so `colors` depends on `attributes` only and pulls no spec data into a bundle (§3, rule 2).
+- **By syntax (A21).** A color property is read on any element, and a value that does not parse as a color or paint is skipped, not reported as an error: `fill="freeze"` on `<animate>` is an animation attribute, not a paint, and is left alone.
+- **`style` attributes** are scanned with the same tokenizer as `parseStyle` (§6). Replacing a color rewrites only the value of that declaration; `!important`, other declarations, comments and spacing stay as they are.
+- **`<style>` elements** are common in editor exports: Illustrator writes `.st0{fill:#D1DAE5;}` and applies it with `class`. Their text is split into rules with the same tokenizer, and colors are read and replaced in declaration values only, inside at-rules such as `@media` too. A selector like `#fff` is an ID, not a color, and is never touched. CDATA sections and text nodes are rewritten in place, so a round trip keeps them (A6). A `<style>` element whose `type` is set and is not `text/css` is skipped.
+
+### What is not resolved
+
+- **No selector matching.** Which elements a rule in `<style>` applies to is not computed: `extractColors` reports the color once, at the `<style>` element, not at every element it matches. `replaceColor` therefore recolors a document whichever way it is styled.
+- **No inheritance or initial values.** `<g fill="red">` is one color on the `g`, not a color on each child. An element with no `fill` is not reported as black, the initial value.
+- **`url(#…)` is not followed.** A paint server is a separate element whose stop colors are found where they are written. Replacing a stop color changes every shape that uses the gradient, as it would in an editor; recoloring one shape only means copying the gradient first.
+- **`currentColor` is a value of its own.** It is parsed and reported as `currentColor`, not as the `color` it inherits, and is replaced only when it is the color being replaced. Normalizing it is B40.
+- **CSS-wide keywords** (`inherit`, `initial`, `unset`, `revert`) and `none` are not colors; `none` is reported as a paint but never replaced by a color.
+
+These rules keep `extractColors` and `replaceColor` consistent: every color `extractColors` reports is one `replaceColor` can change, in the place it reports it.

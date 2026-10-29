@@ -62,7 +62,7 @@ Know which elements and attributes exist in each SVG version.
 
 Find, normalize and replace colors in a document.
 
-- [ ] **B38** Decide how to handle `style`, `<style>`, `url(#gradient)` and inheritance
+- [x] **B38** Decide how to handle `style`, `<style>`, `url(#gradient)` and inheritance
 - [ ] **B39** `parseColor`, `formatColor`
 - [ ] **B40** Normalize hex, rgb, hsl, named colors, `currentColor`
 - [ ] **B41** `extractColors`, `replaceColor`, tested on the corpus
