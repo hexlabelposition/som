@@ -39,6 +39,9 @@ jobs:
       - run: bun run format:check
       - run: bun run docs:check
       - run: bun run typecheck
+      # Downloads the pinned spec sources and compares the output with
+      # src/spec/generated (ARCHITECTURE §11).
+      - run: bun run spec:check
       - run: bun run build
       - run: npm pack --dry-run
 

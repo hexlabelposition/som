@@ -258,7 +258,7 @@ Because attributes are already a plain object, `attributes` must add behavior th
 
 **CI** (GitHub Actions, actions pinned to commit SHAs):
 
-- Lint, format check, type check, build and `npm pack --dry-run` on Node.js 24.
+- Lint, format check, type check, spec data check (§11), build and `npm pack --dry-run` on Node.js 24.
 - Tests on Node.js 22, 24 and 26 (minimum, active LTS, current).
 - Tests on Bun 1.2.23 and latest.
 - Tests in Chromium, Firefox and WebKit.
@@ -327,3 +327,18 @@ Because attributes are already a plain object, `attributes` must add behavior th
 - **webref is a check, not a source.** The generator fails when the element names it reads from svgwg differ from `@webref/elements`, which catches a moved or renamed definitions file.
 - **Pinning (§8).** svgwg is pinned to a commit SHA, the DTD to its dated URL and a SHA-256 checksum, and the npm packages to exact versions ignored by Dependabot. Updating a source is a separate commit that regenerates the data.
 - **Licenses.** The svgwg files are under the W3C Document License, the DTD under its W3C copyright notice, BCD under CC0 and webref under MIT. Only facts such as names, categories and types are generated, no spec text, and each generated file names its sources and their licenses in a header.
+
+### Generator
+
+`bun run spec:generate` downloads the DTD and the svgwg files, checks each against the SHA-256 in `scripts/generate-spec/sources.ts`, reads the two npm packages from `node_modules` and writes three modules, formatted with Prettier. `bun run spec:check` builds the same output and fails if it differs from the committed files; CI runs it, so the data always matches its pins.
+
+| File         | Exports                                                                        |
+| ------------ | ------------------------------------------------------------------------------ |
+| `svg11.ts`   | `svg11Elements`, `svg11Groups`, `svg11PresentationAttributes`                  |
+| `svg2.ts`    | `svg2Elements`, `svg2Groups`, `svg2PresentationAttributes`                     |
+| `support.ts` | `svgElementSupport`, `svgGlobalAttributeSupport` (BCD, separate from validity) |
+
+- **Shape.** Each element has `groups` (attribute groups it takes as a whole), `attributes` (its other attributes) and `presentation` (those of its attributes that are presentation attributes on this element only, such as `cx` on `circle` in SVG 2). Groups keep the names their source uses: `Core` and `GraphicalEvents` in the DTD, `core` and `global event` in svgwg. Names are sorted by UTF-16 code units, and every export is `as const`, so B33 can derive types from it. The generated modules are not exported from `spec/index.ts` until B33 and B35 decide the public API.
+- **SVG 1.1.** The DTD is read like an external subset: parameter entities are expanded, the first declaration wins, conditional sections are included or ignored, external entities are never loaded. Groups are the collection entities an `<!ATTLIST>` names directly, such as `%SVG.Core.attrib;`.
+- **SVG 2.** Elements are resolved as the svgwg build tools do: an element takes its attribute categories, the shared attributes it names, the shared attributes that list it, its own `<attribute>` entries and its geometry properties; module files fall back to the main file. Unlike the build tools, which index one spec at a time, shared attributes apply across files (SVG Animations adds `timelinebegin` to `svg`), and the presentation attributes come only from the main file, because the copy in `definitions-filters.xml` is the SVG 1.1 list. The files refer to a few names they never define, left over from SVG 1.1 (`document element event`, `style`, `externalResourcesRequired`); these are skipped and listed in the generator, and any new unknown name fails it.
+- **Support.** BCD entries are limited to elements and attributes that exist in the generated SVG 1.1 or SVG 2 data, so support never adds a name. For each engine (Blink, Gecko, WebKit, read from Chrome, Firefox and Safari) the version is the first one with full, unprefixed support that has not been removed since, or `false`.
