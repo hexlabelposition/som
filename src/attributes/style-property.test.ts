@@ -22,6 +22,14 @@ describe("getStyleProperty", () => {
     expect(getStyleProperty(element, "stroke")).toBe("blue !important");
   });
 
+  test("lets an !important declaration win over later ones", () => {
+    const element = path(
+      "fill: red !important; fill: green; stroke: blue ! IMPORTANT; stroke: red !important",
+    );
+    expect(getStyleProperty(element, "fill")).toBe("red !important");
+    expect(getStyleProperty(element, "stroke")).toBe("red !important");
+  });
+
   test("compares names ASCII case-insensitively, except custom properties", () => {
     const element = path("Fill: red; --Color: blue");
     expect(getStyleProperty(element, "FILL")).toBe("red");

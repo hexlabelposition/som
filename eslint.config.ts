@@ -15,7 +15,7 @@ const modules: Record<string, string[]> = {
   parse: ["ast", "internal"],
   stringify: ["ast", "internal"],
   attributes: ["ast", "internal"],
-  spec: ["ast", "internal"],
+  spec: ["ast", "attributes", "internal"],
 };
 
 const order = Object.keys(modules);

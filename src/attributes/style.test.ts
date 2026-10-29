@@ -40,6 +40,17 @@ describe("parseStyle", () => {
     expect(Object.keys(style)).toEqual(["stroke", "fill"]);
   });
 
+  test("lets an !important declaration win and keeps its position", () => {
+    expect(
+      parseStyle("fill: red !important; stroke: blue; fill: green"),
+    ).toEqual({ fill: "red !important", stroke: "blue" });
+    expect(
+      Object.keys(
+        parseStyle("fill: red !important; stroke: blue; fill: green"),
+      ),
+    ).toEqual(["fill", "stroke"]);
+  });
+
   test("lowercases names except custom properties", () => {
     expect(parseStyle("FILL: red; --Main-Color: blue")).toEqual({
       fill: "red",

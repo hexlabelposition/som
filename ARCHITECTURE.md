@@ -152,8 +152,10 @@ som/
    internal ← ast ← parse
                   ← stringify
                   ← attributes ← colors
-                  ← spec
+                               ← spec
    ```
+
+   `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21).
 
    `parse` and `stringify` never import each other (A14). They share only `ast` and `internal`, such as the XML character rules, so either one can be used, tested and tree-shaken on its own. Code that needs both, like the round-trip tests, lives outside them in `test/`.
 
@@ -282,9 +284,16 @@ Colors, paint, path data and transforms have their own milestones (v0.3, v0.4, B
 - **Bundle size.** The readers use no spec data: `getLength` alone is about 1.6 kB minified, 0.8 kB gzipped (Bun 1.4 `bun build --minify`), and a bundle of `parse` alone does not change.
 - **Spec rules that are part of the syntax** are applied: `number-optional-number` with one number is that number twice, a `viewBox` with a negative width or height is invalid, and `preserveAspectRatio` keywords are case-sensitive and may start with SVG 1.1's `defer`. Keywords in `parseKeyword` are compared case-sensitively, as SVG attributes define them.
 
+### Presentation values
+
+`getPresentationValue(el, name, version?)` returns the value a property has on the element itself (B56): `{ value, source, important }`, where `source` is `"style"` or `"attribute"`, or `undefined` if neither sets it. It lives in `spec`, because telling a presentation attribute from any other is spec data.
+
+- **The cascade on the element.** A declaration in `style` wins over the presentation attribute, and among declarations the last one wins unless an earlier one is `!important`, as in `getStyleProperty`. `!important` is split off the value into `important`.
+- **Only real presentation attributes count.** The attribute is used only if it is a presentation attribute on this element in the version, or in any version when it is left out (A20): in the presentation group, or one of the element's own, such as `cx` on `circle` in SVG 2. An attribute on an unknown or prefixed element does not count; a declaration in `style` always does, for any property.
+- **Only the element.** `<style>` sheets, inheritance and initial values are not taken into account; for colors they are decided in B38. Values are not checked against the property's syntax, and `inherit` and other CSS-wide keywords are returned as written. `source` says where to write a changed value, for `replaceColor` (B41).
+
 ### Deferred
 
-- **Effective value** (an attribute versus the same property in `style`): it needs to know which attributes are presentation attributes, which is spec data, so it comes with v0.2 (B56). Even then it covers only the element itself: `<style>` sheets and inheritance are decided for colors in B38.
 - **Bulk operations across a tree** (rename, remove or set an attribute on every matching element) are not added: with `findAll` (B17) they are a one-line loop over plain objects, so a helper would only wrap plain access.
 
 ## 7. Tooling
