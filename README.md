@@ -16,7 +16,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 - **One library, one model.** Parse once, run any number of operations on the same tree, serialize once.
 - **SVG as plain objects.** The tree is ordinary data with no DOM nodes or parent references: edit it with plain property access, store it as JSON or send it to a worker.
 - **Lossless round trips.** Element order, text, comments, CDATA, processing instructions, the XML declaration, DOCTYPE, namespaces, attribute order, and unknown elements and attributes all survive `parse` → `stringify`.
-- **Type-safe.** Strict public types for the whole tree. Element and attribute types generated from the SVG specifications are planned for v0.2.
+- **Type-safe.** Strict public types for the whole tree, and element and attribute name types per SVG version, generated from the specifications (`SvgElementName`, `SvgAttributeName`).
 - **Fast parsing.** One pass over the input. In the benchmarks, `parse` is 3-4× faster than svg-parser and 6-13× faster than svgson; see [Performance](#performance).
 - **Zero dependencies.** Pure JavaScript with no runtime dependencies and no DOM requirement.
 - **ESM-only and tree-shakeable.** The API is made of independent functions without side effects, so a bundle contains only what you import: using `parse` does not pull in `stringify` or the `attributes` helpers.

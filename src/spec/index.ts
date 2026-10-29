@@ -1,3 +1,4 @@
-// The data in generated/ stays internal for now: B33 (types) and B35
-// (runtime check) decide what this module exports (ARCHITECTURE §11).
-export {};
+// The data in generated/ stays internal: these types are derived from it, and
+// B35 (runtime check) decides which data functions this module exports
+// (ARCHITECTURE §11).
+export type { SvgAttributeName, SvgElementName, SvgVersion } from "./types";

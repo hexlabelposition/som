@@ -25,6 +25,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A17 | Mutating helpers return `void`; they return a value only when it tells the caller something new, like `toggleClass` (§2)                                      | Accepted |
 | A18 | Spec data comes from pinned W3C sources; browser support from MDN BCD is a separate layer that never changes what is valid (§11)                              | Accepted |
 | A19 | The API is exported as one namespace object, `import { s } from "@hexlabelposition/som"`, as zod does with `z`, instead of separate named functions (§4, B57) | Proposed |
+| A20 | Spec types take the SVG version as an optional last parameter; without it, a name is valid if any version defines it (§11)                                    | Accepted |
 
 ## 2. Data model
 
@@ -357,7 +358,27 @@ Because attributes are already a plain object, `attributes` must add behavior th
 | `svg2.ts`    | `svg2Elements`, `svg2Groups`, `svg2PresentationAttributes`                     |
 | `support.ts` | `svgElementSupport`, `svgGlobalAttributeSupport` (BCD, separate from validity) |
 
-- **Shape.** Each element has `groups` (attribute groups it takes as a whole), `attributes` (its other attributes) and `presentation` (those of its attributes that are presentation attributes on this element only, such as `cx` on `circle` in SVG 2). Groups keep the names their source uses: `Core` and `GraphicalEvents` in the DTD, `core` and `global event` in svgwg. Names are sorted by UTF-16 code units, and every export is `as const`, so B33 can derive types from it. The generated modules are not exported from `spec/index.ts` until B33 and B35 decide the public API.
+- **Shape.** Each element has `groups` (attribute groups it takes as a whole), `attributes` (its other attributes) and `presentation` (those of its attributes that are presentation attributes on this element only, such as `cx` on `circle` in SVG 2). Groups keep the names their source uses: `Core` and `GraphicalEvents` in the DTD, `core` and `global event` in svgwg. Names are sorted by UTF-16 code units, and every export is `as const`, so B33 can derive types from it. The generated modules themselves are not exported: `spec/index.ts` exports only the types derived from them (below), and B35 decides which runtime functions use the data.
 - **SVG 1.1.** The DTD is read like an external subset: parameter entities are expanded, the first declaration wins, conditional sections are included or ignored, external entities are never loaded. Groups are the collection entities an `<!ATTLIST>` names directly, such as `%SVG.Core.attrib;`.
 - **SVG 2.** Elements are resolved as the svgwg build tools do: an element takes its attribute categories, the shared attributes it names, the shared attributes that list it, its own `<attribute>` entries and its geometry properties; module files fall back to the main file. Unlike the build tools, which index one spec at a time, shared attributes apply across files (SVG Animations adds `timelinebegin` to `svg`), and the presentation attributes come only from the main file, because the copy in `definitions-filters.xml` is the SVG 1.1 list. The files refer to a few names they never define, left over from SVG 1.1 (`document element event`, `style`, `externalResourcesRequired`); these are skipped and listed in the generator, and any new unknown name fails it.
 - **Support.** BCD entries are limited to elements and attributes that exist in the generated SVG 1.1 or SVG 2 data, so support never adds a name. For each engine (Blink, Gecko, WebKit, read from Chrome, Firefox and Safari) the version is the first one with full, unprefixed support that has not been removed since, or `false`.
+
+### Types
+
+`spec` exports types derived from the generated data with `typeof`, so they add nothing to a bundle (B33):
+
+| Type                     | Meaning                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| `SvgVersion`             | `"1.1" \| "2"`                                                |
+| `SvgElementName<V>`      | Element names defined in version `V`                          |
+| `SvgAttributeName<E, V>` | Attributes element `E` allows in version `V`, groups included |
+
+```ts
+type A = SvgAttributeName<"rect">; // SVG 1.1 or SVG 2: "rx" | "enable-background" | "paint-order" | …
+type B = SvgAttributeName<"rect", "2">; // SVG 2 only: no "enable-background"
+type C = SvgAttributeName<"altGlyph", "2">; // error: altGlyph is not in SVG 2
+```
+
+- **Version last and optional (A20).** Without a version, a name is valid if SVG 1.1 or SVG 2 defines it, which fits real files: editors still write SVG 1.1 attributes such as `enable-background`. Passing `"1.1"` or `"2"` narrows the type to one version. The types distribute over unions, so `SvgAttributeName<"rect" | "circle">` allows the attributes of either element.
+- **Only what the specs list.** Names are case-sensitive and written as the specs write them: elements without a prefix (`linearGradient`, not `svg:linearGradient`), attributes with the prefixes the specs use (`xml:space`, `xlink:href`). `data-*` attributes and attributes in editor namespaces such as `inkscape:label` are not included. The AST is not narrowed by these types: attribute values and names in `SvgElement.attributes` stay `Record<string, string>` (A4), because a parsed document may contain anything.
+- **Presentation attributes** are included through the presentation group; telling them apart is B56.
