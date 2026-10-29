@@ -83,11 +83,9 @@ Read, write and normalize path data (`d`).
 - [ ] **B48** Transforms: parse and compose matrices, apply to paths
 - [ ] **B49** Optimization passes
 - [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
-- [ ] **B51** Subpath exports (`@hexlabelposition/som/parse`, …) once modules settle (A7)
-- [ ] **B55** Consider tsdown `exports: true` to generate `exports` from the entries once there are subpath exports (B51)
 - [x] **B52** Deno in CI: the `node` test project runs on Deno
 
 ## Open questions
 
 - A lenient `parse` mode may be added later, although strict parsing is currently a guarantee (A10).
-- JSX/React integration may be added later, as a subpath export or a separate package (A7).
+- JSX/React integration may be added later, as `@hexlabelposition/som/react` or a separate package; modules are not split into subpath exports otherwise (A7).

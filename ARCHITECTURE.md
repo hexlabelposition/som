@@ -12,7 +12,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A4  | The AST is made of plain objects, mutated in place and copied explicitly with `clone()`                                                     | Accepted |
 | A5  | Pure JavaScript, no DOM: Node.js ≥ 22, Bun, browsers                                                                                        | Accepted |
 | A6  | Round trips are lossless at the tree level; lexical details are normalized (§5)                                                             | Accepted |
-| A7  | Single entry point `@hexlabelposition/som` for now; subpath exports can be added later without breaking changes (§4)                        | Accepted |
+| A7  | Single entry point `@hexlabelposition/som`; modules are not split into subpath exports such as `/spec` or `/paths` (§4)                     | Accepted |
 | A8  | Source organized as folders inside one package, not as workspace packages                                                                   | Accepted |
 | A9  | v0.1 scope: `parse`, `stringify` + `attributes`                                                                                             | Accepted |
 | A10 | Parsing is strict: only well-formed XML is accepted                                                                                         | Accepted |
@@ -160,19 +160,19 @@ som/
 
 ## 4. Public API
 
-- `@hexlabelposition/som` is the only entry point for now and exports the whole public API.
+- `@hexlabelposition/som` is the only entry point and exports the whole public API (A7).
 - `package.json` `exports` lists exactly `.` and `./package.json`; tsdown builds one entry (`platform: "neutral"`, `target: "es2022"`, ESM, `.d.ts`).
 - Core exports: `parse`, `stringify`, `getRoot`, `clone`, `SvgParseError` and all node types.
 - No options for now (A15). Each function takes only its data. When options are needed, they are added as an optional last argument, which is not a breaking change.
 
-### Future subpath exports
+### Single entry point
 
-Subpath exports such as `@hexlabelposition/som/parse` and `@hexlabelposition/som/stringify` may be added later. Adding them is not a breaking change, but removing or renaming one is, so they wait until the module boundaries settle. To keep that step cheap, these rules apply from the start:
+Modules are not published as subpath exports such as `@hexlabelposition/som/spec` or `@hexlabelposition/som/paths` (A7). Bundlers already drop what is not imported, so subpaths would not make bundles smaller; they would only add import paths to choose from and entries to keep stable, since removing or renaming a subpath is a breaking change. These rules keep the single entry point workable:
 
-1. A folder's `index.ts` is its public API, so every folder can become a subpath as is.
-2. Export names are unique across the library, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
-3. Modules have no side effects at import time and no shared state.
-4. Every class, such as `SvgParseError`, exists once in the build, so `instanceof` works whichever entry point it is imported from.
+1. Export names are unique across the library, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
+2. Modules have no side effects at import time and no shared state, so unused code is tree-shaken.
+
+The one possible exception is a React integration, which is not planned yet. It would need `react` as a peer dependency, which the main entry point cannot have (A2), so it would be a separate entry point, `@hexlabelposition/som/react`, or a separate package (§3, rule 5). That choice is made if the integration is added.
 
 - Every exported function has an explicit return type and TSDoc comment.
 - Every build is validated with publint and arethetypeswrong (`esm-only` profile, `error` level).
