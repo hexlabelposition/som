@@ -3,6 +3,7 @@ import {
   formatDeclaration,
   normalizeName,
   scanStyle,
+  winningDeclarations,
   type StyleDeclaration,
 } from "./style";
 
@@ -10,8 +11,9 @@ import {
  * Returns the value of a property in the `style` attribute of an element, or
  * `undefined` if it is not set there.
  *
- * As in CSS, the last declaration of the property wins and names are compared
- * ASCII case-insensitively, except custom properties (`--name`). Only the
+ * As in CSS, the last declaration of the property wins, but an `!important`
+ * one wins over any that is not, and names are compared ASCII
+ * case-insensitively, except custom properties (`--name`). Only the
  * `style` attribute is read: a presentation attribute such as `fill="red"` or
  * a `<style>` sheet is not taken into account.
  *
@@ -29,7 +31,7 @@ export function getStyleProperty(
 ): string | undefined {
   const style = element.attributes.style;
   if (style === undefined) return undefined;
-  return findAll(style, name).at(-1)?.value;
+  return winningDeclarations(findAll(style, name)).at(0)?.value;
 }
 
 /**

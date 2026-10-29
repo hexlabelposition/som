@@ -1,3 +1,5 @@
+import { splitImportant } from "../internal";
+
 /**
  * A declaration in a `style` attribute, with its position in the text.
  */
@@ -31,25 +33,50 @@ export interface StyleDeclaration {
  * Declarations are split with a small CSS tokenizer, so `;` and `:` inside
  * strings, parentheses such as `url(…)`, and comments do not break them.
  * Values are trimmed and kept as written, including `!important`. As in CSS,
- * the last declaration of a property wins, property names are compared ASCII
- * case-insensitively except custom properties (`--name`), and invalid
- * declarations are skipped.
+ * the last declaration of a property wins, but an `!important` one wins over
+ * any that is not; property names are compared ASCII case-insensitively
+ * except custom properties (`--name`), and invalid declarations are skipped.
  *
  * @example
  * ```ts
  * parseStyle("fill: red; Stroke: url(#a;b) !important; fill: blue");
  * // { fill: "blue", stroke: "url(#a;b) !important" }
+ * parseStyle("fill: red !important; fill: blue");
+ * // { fill: "red !important" }
  * ```
  */
 export function parseStyle(text: string): Record<string, string> {
   const properties = new Map<string, string>();
-  for (const { name, value } of scanStyle(text)) {
-    // Delete first so a repeated property moves to its last position.
-    properties.delete(name);
+  for (const { name, value } of winningDeclarations(scanStyle(text))) {
     properties.set(name, value);
   }
   // fromEntries creates own properties, also for a name like __proto__.
   return Object.fromEntries(properties);
+}
+
+/**
+ * Returns the declaration that wins for each property, in the order of the
+ * winning declarations: the last `!important` one, or the last one if none
+ * is.
+ */
+export function winningDeclarations(
+  declarations: readonly StyleDeclaration[],
+): StyleDeclaration[] {
+  const winners = new Map<string, StyleDeclaration>();
+  for (const declaration of declarations) {
+    const previous = winners.get(declaration.name);
+    if (
+      previous !== undefined &&
+      splitImportant(previous.value).important &&
+      !splitImportant(declaration.value).important
+    ) {
+      continue;
+    }
+    // Delete first so a repeated property moves to its last position.
+    winners.delete(declaration.name);
+    winners.set(declaration.name, declaration);
+  }
+  return [...winners.values()];
 }
 
 /**
