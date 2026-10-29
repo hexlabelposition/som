@@ -37,7 +37,8 @@ updates:
       # Types match the minimum supported Node.js version.
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
-      # Must match the Playwright image in ci.yml; updated together by hand.
+      # Must match the Playwright image in ci.yml and scripts/test-webkit.sh;
+      # updated together by hand.
       - dependency-name: playwright
       # Corpus data: pinned so test results change only with the code.
       - dependency-name: simple-icons

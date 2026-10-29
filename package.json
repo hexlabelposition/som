@@ -42,10 +42,12 @@
     "test": "vitest run",
     "test:node": "vitest run --project node",
     "test:browser": "vitest run --project browser",
+    "test:webkit": "sh scripts/test-webkit.sh",
     "bench": "bun run build && vitest bench --run --config vitest.bench.config.ts --reporter=verbose",
     "bench:bun": "bun --bun run bench",
     "spec:generate": "bun scripts/generate-spec/index.ts",
-    "spec:check": "bun scripts/generate-spec/index.ts --check"
+    "spec:check": "bun scripts/generate-spec/index.ts --check",
+    "check": "bun run lint && bun run format:check && bun run docs:check && bun run typecheck && bun run spec:check && bun run test:node && bun run test:browser --browser chromium && bun run test:browser --browser firefox && bun run build && npm pack --dry-run"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",
