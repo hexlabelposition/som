@@ -43,7 +43,7 @@ Before pushing, run `lint`, `format:check`, `docs:check`, `typecheck` and `test:
 
 ### Modules
 
-Source code lives in domain folders under `src/` (ARCHITECTURE §3): `ast`, `parse`, `stringify`, `attributes`, `spec` and later `colors`, `paths` and others. ESLint enforces the boundaries between them.
+Source code lives in domain folders under `src/` (ARCHITECTURE §3): `ast`, `parse`, `stringify`, `attributes`, `spec`, `colors` and later `paths` and others. ESLint enforces the boundaries between them.
 
 - **A folder's `index.ts` is its public API.** Other folders import only from it, never from its internal files.
 - **Dependencies flow one way** and never form cycles. `parse` and `stringify` do not import each other (A14); code shared between them goes in `internal/`.

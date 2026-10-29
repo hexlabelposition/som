@@ -126,7 +126,10 @@ som/
 │   ├── spec/               # element and attribute data per SVG version
 │   │   ├── generated/      # output of scripts/generate-spec, committed
 │   │   └── index.ts
-│   ├── colors/             # later
+│   ├── colors/             # color values (§12)
+│   │   ├── color.ts        #   parseColor, formatColor, color types
+│   │   ├── named.ts        #   named color table
+│   │   └── index.ts
 │   ├── paths/              # later
 │   └── internal/           # shared helpers (XML character rules, …), never exported
 ├── test/
@@ -443,6 +446,25 @@ type C = SvgAttributeName<"altGlyph", "2">; // error: altGlyph is not in SVG 2
 ## 12. Colors
 
 The colors module finds, normalizes and replaces colors (v0.3). It works with colors where they are written in the document, not with the color an element is rendered in (A22): computing that needs the whole CSS cascade, which som does not implement (§10).
+
+### Color values
+
+`parseColor(text)` reads one color and `formatColor(color)` writes it (B39). Both work on strings (§3, rule 3).
+
+| Notation       | Examples                                                         | `SvgColor`                                           |
+| -------------- | ---------------------------------------------------------------- | ---------------------------------------------------- |
+| Hex            | `#f00`, `#f008`, `#ff0000`, `#ff000080`                          | `{ type: "hex", red, green, blue, alpha }`           |
+| `rgb()`        | `rgb(255, 0, 0)`, `rgba(100%, 0%, 0%, .5)`, `rgb(255 0 0 / 50%)` | `{ type: "rgb", red, green, blue, alpha }`           |
+| `hsl()`        | `hsl(120, 100%, 25%)`, `hsl(0.5turn 100 25 / .5)`                | `{ type: "hsl", hue, saturation, lightness, alpha }` |
+| Named          | `red`, `RebeccaPurple`, `transparent`                            | `{ type: "named", name }`                            |
+| `currentColor` | `currentColor`, `currentcolor`                                   | `{ type: "currentColor" }`                           |
+
+- **The notation is kept.** A color is parsed into the notation it is written in, so `formatColor` writes `#f00` back as hex and `red` as `red`. Converting between notations and comparing colors, so that `#f00` matches `red`, is normalization (B40).
+- **Values are converted only to one scale per field, not clamped.** `rgb()` channels are on the 0-255 scale (`50%` is `127.5`), hues in degrees (`0.5turn` is `180`), saturation and lightness in percent, alpha from 0 to 1 (`50%` is `0.5`, the hex `80` is `128 / 255`). Values outside the range, such as `rgb(300, 0, 0)`, are kept: CSS clamps them only when it renders the color.
+- **Grammar.** The sRGB notations of CSS Color 4: the comma-separated syntax, where `rgb()` takes three numbers or three percentages, not a mix, and `hsl()` takes percentages; and the space-separated syntax with an optional `/` alpha, where numbers and percentages mix. `rgba()` and `hsla()` are the same functions. Numbers follow CSS `<number>` (§6). Keywords and function names are ASCII case-insensitive; SVG whitespace around the color is ignored.
+- **Not read:** other color functions (`hwb()`, `lab()`, `oklch()`, `color()`, `color-mix()`), system colors such as `Canvas`, `none` channels, `calc()` and SVG 1.1 `icc-color(…)`. They return `undefined`, so B41 leaves them as they are. They can be added later without an API change.
+- **Writing.** Hex is lowercase and as short as possible (`#f00`, alpha digits only when the alpha is not `1`), with the alpha rounded to one of its 256 steps. `rgb()` and `hsl()` use the comma-separated syntax, which SVG 1.1 renderers read too, as `rgba()` and `hsla()` when the alpha is not `1`. `formatColor` throws a `TypeError` for a value that would not read back: a non-finite number, a hex channel that is not an integer from 0 to 255, a hex alpha outside 0-1, or an unknown name.
+- **Named colors** are a literal table in `named.ts`, checked against `@webref/css` `<named-color>` in a test. `parseColor` alone is about 5.1 kB minified, 2.1 kB gzipped (Bun 1.4 `bun build --minify`), and a bundle of `parse` alone does not change.
 
 ### Where colors are read
 
