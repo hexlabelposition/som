@@ -18,20 +18,22 @@ Playwright builds its browsers for Ubuntu and Debian. On other Linux distributio
 
 ## Commands
 
-| Command                | What it does                                                 |
-| ---------------------- | ------------------------------------------------------------ |
-| `bun run build`        | Build `dist/` with tsdown, then run publint and attw         |
-| `bun run typecheck`    | Type-check the library, test and script projects             |
-| `bun run lint`         | Lint with ESLint, including module boundary rules            |
-| `bun run lint:fix`     | Lint and apply ESLint's automatic fixes                      |
-| `bun run format`       | Format all files with Prettier                               |
-| `bun run format:check` | Check formatting of everything except Markdown               |
-| `bun run docs:check`   | Check formatting of Markdown files                           |
-| `bun run test`         | Run all tests: Node.js and every browser                     |
-| `bun run test:node`    | Run the tests in Node.js                                     |
-| `bun run test:browser` | Run the tests in browsers; add `--browser chromium` for one  |
-| `bun run bench`        | Build, then run the benchmarks against svgson and svg-parser |
-| `bun run bench:bun`    | Run the benchmarks on the Bun runtime instead of Node.js     |
+| Command                 | What it does                                                  |
+| ----------------------- | ------------------------------------------------------------- |
+| `bun run build`         | Build `dist/` with tsdown, then run publint and attw          |
+| `bun run typecheck`     | Type-check the library, test and script projects              |
+| `bun run lint`          | Lint with ESLint, including module boundary rules             |
+| `bun run lint:fix`      | Lint and apply ESLint's automatic fixes                       |
+| `bun run format`        | Format all files with Prettier                                |
+| `bun run format:check`  | Check formatting of everything except Markdown                |
+| `bun run docs:check`    | Check formatting of Markdown files                            |
+| `bun run test`          | Run all tests: Node.js and every browser                      |
+| `bun run test:node`     | Run the tests in Node.js                                      |
+| `bun run test:browser`  | Run the tests in browsers; add `--browser chromium` for one   |
+| `bun run bench`         | Build, then run the benchmarks against svgson and svg-parser  |
+| `bun run bench:bun`     | Run the benchmarks on the Bun runtime instead of Node.js      |
+| `bun run spec:generate` | Regenerate `src/spec/generated/` from the pinned spec sources |
+| `bun run spec:check`    | Check that `src/spec/generated/` matches the pinned sources   |
 
 Before pushing, run `lint`, `format:check`, `docs:check`, `typecheck` and `test:node`. CI runs the same checks and the tests on every supported Node.js, Bun and browser version.
 

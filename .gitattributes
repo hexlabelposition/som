@@ -1,3 +1,7 @@
 # Test fixtures
 # Kept byte for byte as committed, whatever core.autocrlf is set to.
 test/fixtures/** -text
+
+# Generated spec data
+# Collapsed in diffs; regenerated with `bun run spec:generate`.
+src/spec/generated/** linguist-generated

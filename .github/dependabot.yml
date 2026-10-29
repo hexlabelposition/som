@@ -46,3 +46,6 @@ updates:
       # Benchmark competitors: pinned so numbers change only with the code.
       - dependency-name: svgson
       - dependency-name: svg-parser
+      # Spec sources: updated by hand together with src/spec/generated.
+      - dependency-name: "@webref/elements"
+      - dependency-name: "@mdn/browser-compat-data"
