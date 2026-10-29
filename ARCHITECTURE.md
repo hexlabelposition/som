@@ -26,6 +26,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A18 | Spec data comes from pinned W3C sources; browser support from MDN BCD is a separate layer that never changes what is valid (§11)                              | Accepted |
 | A19 | The API is exported as one namespace object, `import { s } from "@hexlabelposition/som"`, as zod does with `z`, instead of separate named functions (§4, B57) | Proposed |
 | A20 | Spec types take the SVG version as an optional last parameter; without it, a name is valid if any version defines it (§11)                                    | Accepted |
+| A21 | Typed reads parse by syntax, without the spec data; a missing or invalid value is `undefined`, and units are kept as written (§6)                             | Accepted |
 
 ## 2. Data model
 
@@ -172,7 +173,7 @@ som/
 Modules are not published as subpath exports such as `@hexlabelposition/som/spec` or `@hexlabelposition/som/paths` (A7). Bundlers already drop what is not imported, so subpaths would not make bundles smaller; they would only add import paths to choose from and entries to keep stable, since removing or renaming a subpath is a breaking change. These rules keep the single entry point workable:
 
 1. Export names are unique across the library, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
-2. Modules have no side effects at import time and no shared state, so unused code is tree-shaken.
+2. Modules have no side effects at import time and no shared state, so unused code is tree-shaken. Top-level values are literals, not calls such as `new Map([…])` or `[…].map(…)`: a bundler cannot tell that a call has no side effects, so it keeps the call and everything it uses in every bundle, even one that imports only `parse`.
 
 The one possible exception is a React integration, which is not planned yet. It would need `react` as a peer dependency, which the main entry point cannot have (A2), so it would be a separate entry point, `@hexlabelposition/som/react`, or a separate package (§3, rule 5). That choice is made if the integration is added.
 
@@ -254,11 +255,37 @@ Because attributes are already a plain object, `attributes` must add behavior th
 - Semantics follow DOM `classList`: tokens are separated by ASCII whitespace, `add` appends a missing token at the end, existing tokens keep their order. An unchanged list is not rewritten; a changed one is written with single spaces and without duplicates.
 - When the last token is removed, the `class` attribute is removed too.
 
+### Typed reads
+
+Typed reads parse attribute values that are numbers, lengths and similar simple kinds (B36, A21). Each kind has a value-level parser and an element-level reader that parses one attribute with it (§3, rule 3):
+
+| Kind (B34)               | Value level                 | Element level                     | Result                   |
+| ------------------------ | --------------------------- | --------------------------------- | ------------------------ |
+| `number`                 | `parseNumber`               | `getNumber(el, name)`             | `number`                 |
+| `integer`                | `parseInteger`              | `getInteger(el, name)`            | `number`                 |
+| `number-list`            | `parseNumberList`           | `getNumberList(el, name)`         | `number[]`               |
+| `number-optional-number` | `parseNumberPair`           | `getNumberPair(el, name)`         | `[number, number]`       |
+| `number-or-percentage`   | `parseNumberOrPercentage`   | `getNumberOrPercentage(el, name)` | `SvgNumberOrPercentage`  |
+| `length`                 | `parseLength`               | `getLength(el, name)`             | `SvgLength`              |
+| `length-list`            | `parseLengthList`           | `getLengthList(el, name)`         | `SvgLength[]`            |
+| `angle`                  | `parseAngle`                | `getAngle(el, name)`              | `SvgAngle`               |
+| `view-box`               | `parseViewBox`              | `getViewBox(el)`                  | `SvgViewBox`             |
+| `preserve-aspect-ratio`  | `parsePreserveAspectRatio`  | `getPreserveAspectRatio(el)`      | `SvgPreserveAspectRatio` |
+| enumerations             | `parseKeyword(text, words)` | `getKeyword(el, name, words)`     | one of `words`           |
+
+Colors, paint, path data and transforms have their own milestones (v0.3, v0.4, B48).
+
+- **`undefined` for missing and invalid values.** A missing attribute and a value that does not parse both return `undefined`, like `getStyleProperty`, so reading a document from any source never throws, as browsers ignore an invalid attribute. Plain access (`el.attributes[name]`) tells the two apart.
+- **By syntax, not by spec (A21).** The readers parse any attribute, including unknown ones and editor attributes such as `inkscape:*`, and do not check that the spec gives the attribute that kind: `getLength(el, "fill")` parses `fill` as a length. So `attributes` does not depend on `spec` and pulls no spec data into a bundle; the spec types (§11) tell which reader fits an attribute.
+- **Grammar.** Numbers follow CSS `<number>`: `1`, `-.5`, `+2`, `1e3`, but not `5.`, `0x10` or `Infinity`, and a number too large to be finite is invalid. An `e` that no digits follow ends the number, so `1em` is a length. SVG whitespace (space, tab, line feed, form feed, carriage return) around a value is ignored. Lists are separated by whitespace, a comma, or both; an empty list, a leading or trailing comma and two commas in a row are invalid.
+- **Units are kept, not converted.** `SvgLength` is `{ value, unit }` with `""` for user units, `"%"`, and the CSS length units, which SVG 2 allows; percentages and relative units need a viewport or font size the attribute does not have. Units are ASCII case-insensitive and returned in their canonical spelling (`mm`, `Q`). Angles work the same way with `deg`, `grad`, `rad` and `turn`; a plain number is in degrees.
+- **Bundle size.** The readers use no spec data: `getLength` alone is about 1.6 kB minified, 0.8 kB gzipped (Bun 1.4 `bun build --minify`), and a bundle of `parse` alone does not change.
+- **Spec rules that are part of the syntax** are applied: `number-optional-number` with one number is that number twice, a `viewBox` with a negative width or height is invalid, and `preserveAspectRatio` keywords are case-sensitive and may start with SVG 1.1's `defer`. Keywords in `parseKeyword` are compared case-sensitively, as SVG attributes define them.
+
 ### Deferred
 
 - **Effective value** (an attribute versus the same property in `style`): it needs to know which attributes are presentation attributes, which is spec data, so it comes with v0.2 (B56). Even then it covers only the element itself: `<style>` sheets and inheritance are decided for colors in B38.
 - **Bulk operations across a tree** (rename, remove or set an attribute on every matching element) are not added: with `findAll` (B17) they are a one-line loop over plain objects, so a helper would only wrap plain access.
-- **Typed reads** (`getNumber`, `getLength`, …) depend on the spec data and come with v0.2.
 
 ## 7. Tooling
 

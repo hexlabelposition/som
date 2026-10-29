@@ -54,7 +54,7 @@ Know which elements and attributes exist in each SVG version.
 - [x] **B33** Types: allowed attributes per element and SVG version
 - [x] **B34** Value types per attribute (length, color, path data, enums, …)
 - [x] **B35** Runtime check: is an attribute valid for an element
-- [ ] **B36** Typed reads: `getNumber`, `getLength`, …
+- [x] **B36** Typed reads: `getNumber`, `getLength`, …
 - [ ] **B56** Effective value of a presentation attribute versus the same property in `style` (ARCHITECTURE §6)
 - [ ] **B37** Release v0.2.0
 
