@@ -9,3 +9,4 @@ export {
   type SvgRgbColor,
 } from "./color";
 export type { SvgColorName } from "./named";
+export { normalizeColor } from "./normalize";

@@ -185,7 +185,10 @@ function parseAlpha(text: string | undefined): number | undefined {
   return alpha.unit === "%" ? alpha.value / 100 : alpha.value;
 }
 
-function parseHex(digits: string): SvgHexColor | undefined {
+/**
+ * Parses the digits of a hex color after the `#`.
+ */
+export function parseHex(digits: string): SvgHexColor | undefined {
   if (!/^[0-9a-fA-F]+$/.test(digits)) return undefined;
   let full: string;
   if (digits.length === 3 || digits.length === 4) {

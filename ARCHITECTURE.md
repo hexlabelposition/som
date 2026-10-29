@@ -129,6 +129,7 @@ som/
 │   ├── colors/             # color values (§12)
 │   │   ├── color.ts        #   parseColor, formatColor, color types
 │   │   ├── named.ts        #   named color table
+│   │   ├── normalize.ts    #   normalizeColor
 │   │   └── index.ts
 │   ├── paths/              # later
 │   └── internal/           # shared helpers (XML character rules, …), never exported
@@ -459,12 +460,22 @@ The colors module finds, normalizes and replaces colors (v0.3). It works with co
 | Named          | `red`, `RebeccaPurple`, `transparent`                            | `{ type: "named", name }`                            |
 | `currentColor` | `currentColor`, `currentcolor`                                   | `{ type: "currentColor" }`                           |
 
-- **The notation is kept.** A color is parsed into the notation it is written in, so `formatColor` writes `#f00` back as hex and `red` as `red`. Converting between notations and comparing colors, so that `#f00` matches `red`, is normalization (B40).
+- **The notation is kept.** A color is parsed into the notation it is written in, so `formatColor` writes `#f00` back as hex and `red` as `red`. Converting between notations and comparing colors, so that `#f00` matches `red`, is a separate step, `normalizeColor`.
 - **Values are converted only to one scale per field, not clamped.** `rgb()` channels are on the 0-255 scale (`50%` is `127.5`), hues in degrees (`0.5turn` is `180`), saturation and lightness in percent, alpha from 0 to 1 (`50%` is `0.5`, the hex `80` is `128 / 255`). Values outside the range, such as `rgb(300, 0, 0)`, are kept: CSS clamps them only when it renders the color.
 - **Grammar.** The sRGB notations of CSS Color 4: the comma-separated syntax, where `rgb()` takes three numbers or three percentages, not a mix, and `hsl()` takes percentages; and the space-separated syntax with an optional `/` alpha, where numbers and percentages mix. `rgba()` and `hsla()` are the same functions. Numbers follow CSS `<number>` (§6). Keywords and function names are ASCII case-insensitive; SVG whitespace around the color is ignored.
 - **Not read:** other color functions (`hwb()`, `lab()`, `oklch()`, `color()`, `color-mix()`), system colors such as `Canvas`, `none` channels, `calc()` and SVG 1.1 `icc-color(…)`. They return `undefined`, so B41 leaves them as they are. They can be added later without an API change.
 - **Writing.** Hex is lowercase and as short as possible (`#f00`, alpha digits only when the alpha is not `1`), with the alpha rounded to one of its 256 steps. `rgb()` and `hsl()` use the comma-separated syntax, which SVG 1.1 renderers read too, as `rgba()` and `hsla()` when the alpha is not `1`. `formatColor` throws a `TypeError` for a value that would not read back: a non-finite number, a hex channel that is not an integer from 0 to 255, a hex alpha outside 0-1, or an unknown name.
-- **Named colors** are a literal table in `named.ts`, checked against `@webref/css` `<named-color>` in a test. `parseColor` alone is about 5.1 kB minified, 2.1 kB gzipped (Bun 1.4 `bun build --minify`), and a bundle of `parse` alone does not change.
+- **Named colors** are a literal table in `named.ts` from name to hex digits (`transparent` is `00000000`). A test checks the names against `@webref/css` `<named-color>`, and a browser test checks the values against what a canvas makes of each name in Chromium, Firefox and WebKit.
+
+### Normalization
+
+`normalizeColor(color)` converts a color to one form, so that colors which look the same compare equal (B40): a hex color with integer channels from 0 to 255 and an alpha rounded to one of 256 steps, or `currentColor`. `formatColor` then writes it as a string, so `formatColor(normalizeColor(parseColor(text)))` is `#f00` for `red`, `#FF0000`, `rgb(100% 0% 0%)` and `hsl(0 100% 50%)` alike.
+
+- **sRGB only.** Every notation `parseColor` reads is sRGB, so the result loses nothing a browser keeps: browsers store these colors with 8-bit channels too, and serialize `rgb(127.5, 0, 0)` as `rgb(128, 0, 0)`.
+- **As CSS renders it.** Named colors take their CSS value, `hsl()` is converted with the algorithm in CSS Color 4, the hue wraps around, and values outside the range are clamped: `rgb(300, 0, 0)` is `#f00`, `hsl(0, 200%, 150%)` is `#fff`. A browser test compares the `hsl()` conversion with the browsers, allowing one step where engines round half-way channels differently.
+- **`currentColor` stays.** Its value is the inherited `color` property, which the color alone does not tell (see "What is not resolved"). It equals only itself.
+- **Idempotent.** A normalized color normalizes to itself and reads back from `formatColor` unchanged. `normalizeColor` returns a new object and throws a `TypeError` for a value that is not finite or an unknown name, as `formatColor` does.
+- **Bundle size** (Bun 1.4 `bun build --minify`): `parseColor` alone is about 6.0 kB minified, 2.7 kB gzipped, `normalizeColor` about 4.1 kB and 2.0 kB; most of it is the named color table, which `formatColor` also uses to check names. A bundle of `parse` alone does not change.
 
 ### Where colors are read
 
@@ -489,7 +500,7 @@ The colors module finds, normalizes and replaces colors (v0.3). It works with co
 - **No selector matching.** Which elements a rule in `<style>` applies to is not computed: `extractColors` reports the color once, at the `<style>` element, not at every element it matches. `replaceColor` therefore recolors a document whichever way it is styled.
 - **No inheritance or initial values.** `<g fill="red">` is one color on the `g`, not a color on each child. An element with no `fill` is not reported as black, the initial value.
 - **`url(#…)` is not followed.** A paint server is a separate element whose stop colors are found where they are written. Replacing a stop color changes every shape that uses the gradient, as it would in an editor; recoloring one shape only means copying the gradient first.
-- **`currentColor` is a value of its own.** It is parsed and reported as `currentColor`, not as the `color` it inherits, and is replaced only when it is the color being replaced. Normalizing it is B40.
+- **`currentColor` is a value of its own.** It is parsed and reported as `currentColor`, not as the `color` it inherits, and is replaced only when it is the color being replaced. `normalizeColor` keeps it as it is.
 - **CSS-wide keywords** (`inherit`, `initial`, `unset`, `revert`) and `none` are not colors; `none` is reported as a paint but never replaced by a color.
 
 These rules keep `extractColors` and `replaceColor` consistent: every color `extractColors` reports is one `replaceColor` can change, in the place it reports it.

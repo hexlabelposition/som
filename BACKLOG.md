@@ -64,7 +64,7 @@ Find, normalize and replace colors in a document.
 
 - [x] **B38** Decide how to handle `style`, `<style>`, `url(#gradient)` and inheritance
 - [x] **B39** `parseColor`, `formatColor`
-- [ ] **B40** Normalize hex, rgb, hsl, named colors, `currentColor`
+- [x] **B40** Normalize hex, rgb, hsl, named colors, `currentColor`
 - [ ] **B41** `extractColors`, `replaceColor`, tested on the corpus
 - [ ] **B42** Release v0.3.0
 
