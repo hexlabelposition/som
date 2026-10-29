@@ -56,7 +56,7 @@ Know which elements and attributes exist in each SVG version.
 - [x] **B35** Runtime check: is an attribute valid for an element
 - [x] **B36** Typed reads: `getNumber`, `getLength`, …
 - [x] **B56** Effective value of a presentation attribute versus the same property in `style` (ARCHITECTURE §6)
-- [ ] **B37** Release v0.2.0
+- [x] **B37** Release v0.2.0
 
 ## v0.3 - Colors
 

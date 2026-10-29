@@ -2,8 +2,7 @@
 
 **som (SVG Object Model)** is a zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects in any JavaScript runtime.
 
-> [!WARNING]
-> **Status: early development (0.x).** v0.1 covers parsing, serialization, tree helpers and the `style` and `class` attributes. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
+> **Status: early development (0.x).** v0.2 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, and element and attribute data for SVG 1.1 and SVG 2. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
 
 ## Why
 
@@ -42,7 +41,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 | **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4    |
 | **geometry, transforms, optimization** | Bounds, lengths, matrices, cleanup                                    | later   |
 
-v0.1 is released. Later versions show the intended order, not dates.
+v0.1 is released. → v0.2 is released.
 
 ## Install
 
