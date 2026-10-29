@@ -4,8 +4,8 @@
 // - @mdn/browser-compat-data 8.1.7, svg.elements and svg.global_attributes (CC0),
 // -   limited to the elements and attributes in svg11.ts and svg2.ts
 //
-// Only facts such as names, groups and support versions are taken from the
-// sources, no spec text.
+// Only facts such as names, groups, value types and support versions are
+// taken from the sources, no spec text.
 
 /** Browser support of SVG elements and their attributes, by element name. */
 export const svgElementSupport = {

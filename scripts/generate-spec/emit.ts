@@ -1,23 +1,63 @@
 import type { ElementSupport, Support } from "./bcd";
-import { compareNames, type SpecData } from "./model";
+import { compareNames, type SpecData, type ValueType } from "./model";
 
 /**
  * Writes the data of one SVG version as a TypeScript module with three
  * exports: `<prefix>Elements`, `<prefix>Groups` and
- * `<prefix>PresentationAttributes`.
+ * `<prefix>PresentationAttributes`. Attributes are written as objects from
+ * name to value type.
  */
 export const emitSpec = (
   prefix: string,
   data: SpecData,
   header: string,
 ): string => {
-  const elements = sorted(data.elements);
-  const groups = sorted(data.groups);
+  const typed = (
+    names: readonly string[],
+    values: Map<string, ValueType> | undefined,
+    where: string,
+  ): Record<string, ValueType> =>
+    Object.fromEntries(
+      names.map((name) => {
+        const type = values?.get(name);
+        if (type === undefined) {
+          throw new Error(`emit: ${name} in ${where} has no value type`);
+        }
+        return [name, type];
+      }),
+    );
+
+  const elements = sorted(
+    new Map(
+      [...data.elements].map(([name, element]) => [
+        name,
+        {
+          groups: element.groups,
+          attributes: typed(
+            element.attributes,
+            data.values.elements.get(name),
+            `element ${name}`,
+          ),
+          presentation: element.presentation,
+        },
+      ]),
+    ),
+  );
+  const groups = sorted(
+    new Map(
+      [...data.groups].map(([name, attributes]) => [
+        name,
+        typed(attributes, data.values.groups.get(name), `group ${name}`),
+      ]),
+    ),
+  );
   return [
     header,
-    doc("Elements by name, with their attribute groups and own attributes."),
+    doc(
+      "Elements by name, with their attribute groups and the value types of their own attributes.",
+    ),
     constant(`${prefix}Elements`, elements),
-    doc("Attribute groups by name, with their attributes."),
+    doc("Attribute groups by name, with the value types of their attributes."),
     constant(`${prefix}Groups`, groups),
     doc(
       "Presentation attributes that apply to every element in the presentation group.",
@@ -66,8 +106,8 @@ export const header = (sources: readonly string[]): string =>
     "// Sources:",
     ...sources.map((source) => `// - ${source}`),
     "//",
-    "// Only facts such as names, groups and support versions are taken from the",
-    "// sources, no spec text.",
+    "// Only facts such as names, groups, value types and support versions are",
+    "// taken from the sources, no spec text.",
     "",
   ].join("\n");
 

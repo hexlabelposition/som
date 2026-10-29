@@ -11,14 +11,17 @@ import { format, resolveConfig } from "prettier";
 import { readSupport, type KnownNames } from "./bcd";
 import { readSvg11 } from "./dtd";
 import { emitSpec, emitSupport, header } from "./emit";
-import type { SpecData } from "./model";
+import { readIdl } from "./idl";
+import type { SpecData, SpecNames } from "./model";
 import {
   svg11Dtd,
   svg2Definitions,
+  webrefIdlFiles,
   webrefSpecs,
   type RemoteSource,
 } from "./sources";
 import { readSvg2 } from "./svgwg";
+import { deriveSvg2Values } from "./values";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const output = join(root, "src/spec/generated");
@@ -49,7 +52,7 @@ const packageVersion = async (name: string): Promise<string> => {
  * Fails when the SVG 2 element names differ from `@webref/elements`, which
  * catches a moved or renamed definitions file.
  */
-const checkWebref = async (svg2: SpecData): Promise<void> => {
+const checkWebref = async (svg2: SpecNames): Promise<void> => {
   const names = new Set<string>();
   for (const spec of webrefSpecs) {
     const text = await readFile(
@@ -70,7 +73,32 @@ const checkWebref = async (svg2: SpecData): Promise<void> => {
   }
 };
 
-const knownNames = (versions: SpecData[]): KnownNames => {
+/**
+ * CSS value syntax of every property in `@webref/css`.
+ */
+const readCssSyntax = async (): Promise<Map<string, string>> => {
+  const text = await readFile(
+    join(root, "node_modules/@webref/css/css.json"),
+    "utf8",
+  );
+  const data = JSON.parse(text) as {
+    properties: { name: string; syntax?: string }[];
+  };
+  return new Map(
+    data.properties.flatMap(({ name, syntax }) =>
+      syntax === undefined ? [] : [[name, syntax] as const],
+    ),
+  );
+};
+
+const readIdlFiles = async (): Promise<string[]> =>
+  Promise.all(
+    webrefIdlFiles.map((file) =>
+      readFile(join(root, "node_modules/@webref/idl", `${file}.idl`), "utf8"),
+    ),
+  );
+
+const knownNames = (versions: SpecNames[]): KnownNames => {
   const known: KnownNames = {
     elements: new Map(),
     globalAttributes: new Set(),
@@ -96,11 +124,22 @@ const [dtd, ...definitions] = await Promise.all(
   [svg11Dtd, ...svg2Definitions].map(download),
 );
 const svg11 = readSvg11(dtd ?? "");
-const svg2 = readSvg2(definitions);
-await checkWebref(svg2);
+const svg2Names = readSvg2(definitions);
+await checkWebref(svg2Names);
+const svg2: SpecData = {
+  ...svg2Names,
+  values: deriveSvg2Values({
+    svg2: svg2Names,
+    svg11,
+    cssSyntax: await readCssSyntax(),
+    idl: readIdl(await readIdlFiles()),
+  }),
+};
 const support = readSupport(bcd.svg, knownNames([svg11, svg2]));
 
 const webrefVersion = await packageVersion("@webref/elements");
+const webrefCssVersion = await packageVersion("@webref/css");
+const webrefIdlVersion = await packageVersion("@webref/idl");
 const bcdVersion = await packageVersion("@mdn/browser-compat-data");
 
 const files: Record<string, string> = {
@@ -117,6 +156,9 @@ const files: Record<string, string> = {
     header([
       ...svg2Definitions.map(({ url }) => `${url} (W3C Document License)`),
       `@webref/elements ${webrefVersion}, element names checked only (MIT)`,
+      `@webref/css ${webrefCssVersion}, value syntax of presentation attributes (MIT)`,
+      `@webref/idl ${webrefIdlVersion}, ${webrefIdlFiles.map((file) => `${file}.idl`).join(", ")}, reflected types (MIT)`,
+      `value types of attributes SVG 2 keeps from SVG 1.1: ${svg11Dtd.url} (W3C copyright notice)`,
     ]),
   ),
   "support.ts": emitSupport(

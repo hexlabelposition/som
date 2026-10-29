@@ -12,6 +12,9 @@ interface SpecData {
 
 type Item<T> = T extends readonly (infer I)[] ? I : never;
 
+/** The keys of every member of a union, not only the keys they share. */
+type KeysOf<T> = T extends unknown ? keyof T : never;
+
 /**
  * The attributes of element `E` in version `V`: its own attributes and those
  * of its attribute groups. Distributes over unions of versions and elements.
@@ -22,8 +25,8 @@ type AttributesOf<V extends SvgVersion, E> = V extends SvgVersion
         groups: infer G;
         attributes: infer A;
       }
-      ? | Item<A>
-        | Item<SpecData[V]["groups"][Item<G> & keyof SpecData[V]["groups"]]>
+      ? | keyof A
+        | KeysOf<SpecData[V]["groups"][Item<G> & keyof SpecData[V]["groups"]]>
       : never
     : never
   : never;

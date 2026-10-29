@@ -331,14 +331,14 @@ Because attributes are already a plain object, `attributes` must add behavior th
 
 ### Sources
 
-| Data                                    | SVG 1.1                                            | SVG 2                                                                                                                           |
-| --------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Elements and their attributes           | Flat DTD `svg11-flat-20110816.dtd`                 | svgwg `master/definitions.xml`, `definitions-filters.xml`, `definitions-masking.xml`, `specs/animations/master/definitions.xml` |
-| Attribute groups (core, conditional, …) | DTD parameter entities such as `%SVG.Core.attrib;` | `<attributecategory>` entries                                                                                                   |
-| Presentation attributes                 | `%SVG.Presentation.attrib;`                        | `presentationattributes` of the `presentation` category, plus `geometryproperties` per element                                  |
-| Value types (B34)                       | DTD datatype entities such as `%Length.datatype;`  | Decided in B34; the definitions files have no value types                                                                       |
-| Cross-check of element names            | -                                                  | `@webref/elements` (`SVG2`, `filter-effects-1`, `css-masking-1`, `svg-animations`)                                              |
-| Browser support (separate layer)        | -                                                  | `@mdn/browser-compat-data`: `svg.elements` and `svg.global_attributes`                                                          |
+| Data                                    | SVG 1.1                                                                            | SVG 2                                                                                                                                       |
+| --------------------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Elements and their attributes           | Flat DTD `svg11-flat-20110816.dtd`                                                 | svgwg `master/definitions.xml`, `definitions-filters.xml`, `definitions-masking.xml`, `specs/animations/master/definitions.xml`             |
+| Attribute groups (core, conditional, …) | DTD parameter entities such as `%SVG.Core.attrib;`                                 | `<attributecategory>` entries                                                                                                               |
+| Presentation attributes                 | `%SVG.Presentation.attrib;`                                                        | `presentationattributes` of the `presentation` category, plus `geometryproperties` per element                                              |
+| Value types (B34)                       | DTD datatype entities such as `%Length.datatype;` and enumerations in `<!ATTLIST>` | `@webref/css` value syntax for presentation attributes, `@webref/idl` reflected types for other attributes, then SVG 1.1 (§11, Value types) |
+| Cross-check of element names            | -                                                                                  | `@webref/elements` (`SVG2`, `filter-effects-1`, `css-masking-1`, `svg-animations`)                                                          |
+| Browser support (separate layer)        | -                                                                                  | `@mdn/browser-compat-data`: `svg.elements` and `svg.global_attributes`                                                                      |
 
 ### Rules
 
@@ -346,11 +346,11 @@ Because attributes are already a plain object, `attributes` must add behavior th
 - **Browser support is separate data.** BCD's status (`deprecated`, `standard_track`) and the first supported version per engine are generated next to the spec data, for functions that ask for them explicitly. It does not narrow the v0.2 types.
 - **webref is a check, not a source.** The generator fails when the element names it reads from svgwg differ from `@webref/elements`, which catches a moved or renamed definitions file.
 - **Pinning (§8).** svgwg is pinned to a commit SHA, the DTD to its dated URL and a SHA-256 checksum, and the npm packages to exact versions ignored by Dependabot. Updating a source is a separate commit that regenerates the data.
-- **Licenses.** The svgwg files are under the W3C Document License, the DTD under its W3C copyright notice, BCD under CC0 and webref under MIT. Only facts such as names, categories and types are generated, no spec text, and each generated file names its sources and their licenses in a header.
+- **Licenses.** The svgwg files are under the W3C Document License, the DTD under its W3C copyright notice, BCD under CC0, and webref and webidl2 under MIT. Only facts such as names, categories and types are generated, no spec text, and each generated file names its sources and their licenses in a header.
 
 ### Generator
 
-`bun run spec:generate` downloads the DTD and the svgwg files, checks each against the SHA-256 in `scripts/generate-spec/sources.ts`, reads the two npm packages from `node_modules` and writes three modules, formatted with Prettier. `bun run spec:check` builds the same output and fails if it differs from the committed files; CI runs it, so the data always matches its pins.
+`bun run spec:generate` downloads the DTD and the svgwg files, checks each against the SHA-256 in `scripts/generate-spec/sources.ts`, reads the npm packages (`@webref/elements`, `@webref/css`, `@webref/idl` with `webidl2`, BCD) from `node_modules` and writes three modules, formatted with Prettier. `bun run spec:check` builds the same output and fails if it differs from the committed files; CI runs it, so the data always matches its pins.
 
 | File         | Exports                                                                        |
 | ------------ | ------------------------------------------------------------------------------ |
@@ -358,10 +358,22 @@ Because attributes are already a plain object, `attributes` must add behavior th
 | `svg2.ts`    | `svg2Elements`, `svg2Groups`, `svg2PresentationAttributes`                     |
 | `support.ts` | `svgElementSupport`, `svgGlobalAttributeSupport` (BCD, separate from validity) |
 
-- **Shape.** Each element has `groups` (attribute groups it takes as a whole), `attributes` (its other attributes) and `presentation` (those of its attributes that are presentation attributes on this element only, such as `cx` on `circle` in SVG 2). Groups keep the names their source uses: `Core` and `GraphicalEvents` in the DTD, `core` and `global event` in svgwg. Names are sorted by UTF-16 code units, and every export is `as const`, so B33 can derive types from it. The generated modules themselves are not exported: `spec/index.ts` exports only the types derived from them (below), and B35 decides which runtime functions use the data.
+- **Shape.** Each element has `groups` (attribute groups it takes as a whole), `attributes` (its other attributes, each with its value type) and `presentation` (those of its attributes that are presentation attributes on this element only, such as `cx` on `circle` in SVG 2). Each group maps its attributes to their value types; an attribute's type may differ between groups (`xlink:show` is fixed to `embed` or `other` in SVG 1.1). Groups keep the names their source uses: `Core` and `GraphicalEvents` in the DTD, `core` and `global event` in svgwg. Names are sorted by UTF-16 code units, and every export is `as const`, so B33 can derive types from it. The generated modules themselves are not exported: `spec/index.ts` exports only the types derived from them (below), and B35 decides which runtime functions use the data.
 - **SVG 1.1.** The DTD is read like an external subset: parameter entities are expanded, the first declaration wins, conditional sections are included or ignored, external entities are never loaded. Groups are the collection entities an `<!ATTLIST>` names directly, such as `%SVG.Core.attrib;`.
 - **SVG 2.** Elements are resolved as the svgwg build tools do: an element takes its attribute categories, the shared attributes it names, the shared attributes that list it, its own `<attribute>` entries and its geometry properties; module files fall back to the main file. Unlike the build tools, which index one spec at a time, shared attributes apply across files (SVG Animations adds `timelinebegin` to `svg`), and the presentation attributes come only from the main file, because the copy in `definitions-filters.xml` is the SVG 1.1 list. The files refer to a few names they never define, left over from SVG 1.1 (`document element event`, `style`, `externalResourcesRequired`); these are skipped and listed in the generator, and any new unknown name fails it.
 - **Support.** BCD entries are limited to elements and attributes that exist in the generated SVG 1.1 or SVG 2 data, so support never adds a name. For each engine (Blink, Gecko, WebKit, read from Chrome, Firefox and Safari) the version is the first one with full, unprefixed support that has not been removed since, or `false`.
+
+### Value types
+
+Every attribute has a value type (B34): a kind from a fixed list, or the keywords of an enumeration such as `["userSpaceOnUse", "objectBoundingBox"]`. The kinds are som's own vocabulary, defined in `scripts/generate-spec/model.ts`, so B36 can map each to a typed read:
+
+`string`, `number`, `integer`, `number-optional-number`, `number-or-percentage`, `number-list`, `length`, `length-list`, `angle`, `color`, `paint`, `url`, `path-data`, `points`, `transform-list`, `view-box`, `preserve-aspect-ratio`, `script`, `style`, `css`.
+
+- **`length` includes percentages** and plain numbers (user units), as SVG lengths do. **`css`** is a CSS property value no other kind describes, such as `font-family` or `stroke-dasharray`; **`string`** is any other text, such as IDs, names, language tags and animation timing.
+- **SVG 1.1** takes the kind from the datatype entity of each attribute (a table in `dtd.ts`; an unknown datatype fails the generator) and the keywords from enumerations, including `inherit` where the DTD lists it. Plain `CDATA` is `string`.
+- **SVG 2** tries, in order: an override in `values.ts`; for presentation attributes, the CSS value syntax from `@webref/css` (a few syntaxes such as `<paint>` map to a kind, keyword-only syntaxes to an enumeration, anything else to `css`); for other attributes, the IDL attribute that reflects it in `@webref/idl` (`SVGAnimatedLength` is `length`); the same attribute in SVG 1.1; and finally the conventions `on*` (`script`) and `aria-*` (`string`). An attribute none of these covers fails the generator, and so does an override that is no longer used.
+- **IDL and SVG 1.1 together.** IDL does not list enumeration keywords, so those come from SVG 1.1; an IDL string or number takes the more specific SVG 1.1 type when there is one (`url`, an enumeration, `number-or-percentage`). Pairs such as `stdDeviationX` and `stdDeviationY` reflect one `number-optional-number` attribute, and HTML-style camel case is matched case-insensitively (`crossOrigin` is `crossorigin`).
+- **Overrides** cover what the data cannot give: attributes new in SVG 2 that no IDL attribute reflects (`side` on `textPath`, `playbackorder`), and enumerations whose keywords changed since SVG 1.1 (`mode` on `feBlend` takes every `<blend-mode>`, `operator` on `feComposite` gained `lighter`). Each override names the definition it comes from.
 
 ### Types
 

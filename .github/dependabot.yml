@@ -48,4 +48,7 @@ updates:
       - dependency-name: svg-parser
       # Spec sources: updated by hand together with src/spec/generated.
       - dependency-name: "@webref/elements"
+      - dependency-name: "@webref/css"
+      - dependency-name: "@webref/idl"
+      - dependency-name: webidl2
       - dependency-name: "@mdn/browser-compat-data"

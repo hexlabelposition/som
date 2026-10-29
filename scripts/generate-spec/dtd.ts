@@ -1,4 +1,70 @@
-import { sortNames, type ElementData, type SpecData } from "./model";
+import {
+  sortNames,
+  type ElementData,
+  type SpecData,
+  type ValueKind,
+  type ValueType,
+} from "./model";
+
+/**
+ * The value kind of each DTD datatype entity, such as `%Length.datatype;`.
+ * `enum` takes the keywords from the entity's value, such as
+ * `( nonzero | evenodd | inherit )`. An unknown datatype fails the generator.
+ */
+const datatypes: Readonly<Record<string, ValueKind | "enum">> = {
+  BaselineShiftValue: "css",
+  Boolean: "enum",
+  ClassList: "string",
+  ClipFillRule: "enum",
+  ClipPathValue: "css",
+  ClipValue: "css",
+  Color: "color",
+  ContentType: "string",
+  Coordinate: "length",
+  Coordinates: "length-list",
+  CursorValue: "css",
+  EnableBackgroundValue: "css",
+  ExtensionList: "string",
+  FeatureList: "string",
+  FilterValue: "css",
+  FontFamilyValue: "css",
+  FontSizeAdjustValue: "css",
+  FontSizeValue: "css",
+  GlyphOrientationHorizontalValue: "css",
+  GlyphOrientationVerticalValue: "css",
+  Integer: "integer",
+  KerningValue: "css",
+  LanguageCode: "string",
+  LanguageCodes: "string",
+  Length: "length",
+  Lengths: "length-list",
+  LinkTarget: "string",
+  MarkerValue: "css",
+  MaskValue: "css",
+  MediaDesc: "string",
+  Number: "number",
+  NumberOptionalNumber: "number-optional-number",
+  NumberOrPercentage: "number-or-percentage",
+  Numbers: "number-list",
+  OpacityValue: "number",
+  Paint: "paint",
+  PathData: "path-data",
+  Points: "points",
+  PreserveAspectRatioSpec: "preserve-aspect-ratio",
+  Script: "script",
+  SpacingValue: "css",
+  StrokeDashArrayValue: "css",
+  StrokeDashOffsetValue: "length",
+  StrokeMiterLimitValue: "number",
+  StrokeWidthValue: "length",
+  StyleSheet: "style",
+  SVGColor: "color",
+  Text: "string",
+  TextDecorationValue: "css",
+  TransformList: "transform-list",
+  URI: "url",
+  ViewBoxSpec: "view-box",
+};
 
 /**
  * Reads the elements and attributes of SVG 1.1 from its flat DTD.
@@ -15,12 +81,27 @@ import { sortNames, type ElementData, type SpecData } from "./model";
 export const readSvg11 = (text: string): SpecData => {
   const dtd = readDtd(text);
 
+  const valueType = (token: string): ValueType => {
+    const datatype = /^%([A-Za-z]+)\.datatype;$/.exec(token)?.[1];
+    if (datatype !== undefined) {
+      const kind = datatypes[datatype];
+      if (kind === undefined) {
+        throw new Error(`DTD: unknown datatype %${datatype}.datatype;`);
+      }
+      return kind === "enum" ? keywords(dtd.expand(token).trim(), token) : kind;
+    }
+    return token.startsWith("(") ? keywords(token, token) : "string";
+  };
+
   const elements = new Map<string, ElementData>();
+  const elementValues = new Map<string, Map<string, ValueType>>();
   for (const name of dtd.elements) {
     elements.set(name, { groups: [], attributes: [], presentation: [] });
+    elementValues.set(name, new Map());
   }
 
   const groups = new Map<string, string[]>();
+  const groupValues = new Map<string, Map<string, ValueType>>();
   const groupAttributes = (group: string): string[] => {
     let attributes = groups.get(group);
     if (attributes === undefined) {
@@ -28,17 +109,24 @@ export const readSvg11 = (text: string): SpecData => {
       if (value === undefined) {
         throw new Error(`DTD: no entity for attribute group ${group}`);
       }
-      attributes = sortNames(attributeNames(tokenize(value)));
+      const definitions = attributeDefinitions(tokenize(value));
+      const values = new Map<string, ValueType>();
+      for (const { name, type } of definitions) {
+        setOnce(values, name, valueType(type), `group ${group}`);
+      }
+      groupValues.set(group, values);
+      attributes = sortNames(definitions.map(({ name }) => name));
       groups.set(group, attributes);
     }
     return attributes;
   };
 
   for (const { raw } of dtd.attlists) {
-    const tokens = tokenize(dtd.expand(raw));
+    const tokens = tokenize(dtd.expandKeepingDatatypes(raw));
     const name = tokens.shift();
     const element = name === undefined ? undefined : elements.get(name);
-    if (element === undefined) {
+    const values = name === undefined ? undefined : elementValues.get(name);
+    if (element === undefined || values === undefined) {
       throw new Error(`DTD: <!ATTLIST> for undeclared element ${String(name)}`);
     }
 
@@ -49,9 +137,10 @@ export const readSvg11 = (text: string): SpecData => {
         inGroups.add(attribute);
       }
     }
-    for (const attribute of attributeNames(tokens)) {
+    for (const { name: attribute, type } of attributeDefinitions(tokens)) {
       if (!inGroups.has(attribute)) {
         element.attributes.push(attribute);
+        setOnce(values, attribute, valueType(type), `element ${String(name)}`);
       }
     }
   }
@@ -67,14 +156,48 @@ export const readSvg11 = (text: string): SpecData => {
   for (const group of groups.keys()) {
     if (!used.has(group)) {
       groups.delete(group);
+      groupValues.delete(group);
     }
   }
 
+  const presentationAttributes = groupAttributes("Presentation");
   return {
     elements,
     groups,
-    presentationAttributes: groupAttributes("Presentation"),
+    presentationAttributes,
+    values: { elements: elementValues, groups: groupValues },
   };
+};
+
+/**
+ * Sets a value type, failing if the attribute already has a different one.
+ */
+const setOnce = (
+  values: Map<string, ValueType>,
+  name: string,
+  type: ValueType,
+  where: string,
+): void => {
+  const existing = values.get(name);
+  if (existing !== undefined && String(existing) !== String(type)) {
+    throw new Error(
+      `DTD: ${name} in ${where} is ${String(type)}, elsewhere ${String(existing)}`,
+    );
+  }
+  values.set(name, type);
+};
+
+/**
+ * Splits an enumeration such as `( nonzero | evenodd )` into its keywords.
+ */
+const keywords = (group: string, source: string): string[] => {
+  if (!group.startsWith("(") || !group.endsWith(")")) {
+    throw new Error(`DTD: ${source} is not an enumeration`);
+  }
+  return group
+    .slice(1, -1)
+    .split("|")
+    .map((keyword) => keyword.trim());
 };
 
 /**
@@ -96,6 +219,8 @@ interface Dtd {
   attlists: { raw: string }[];
   /** Expands parameter entity references in declaration text. */
   expand: (text: string) => string;
+  /** Expands them too, but leaves datatype references such as `%Length.datatype;`. */
+  expandKeepingDatatypes: (text: string) => string;
 }
 
 const readDtd = (input: string): Dtd => {
@@ -104,11 +229,18 @@ const readDtd = (input: string): Dtd => {
   const elements: string[] = [];
   const attlists: { raw: string }[] = [];
 
-  const expand = (text: string, depth = 0): string => {
+  const expandWith = (
+    text: string,
+    keepDatatypes: boolean,
+    depth = 0,
+  ): string => {
     if (depth > 32) {
       throw new Error("DTD: parameter entities nest too deep");
     }
-    return text.replace(parameterReference, (_, name: string) => {
+    return text.replace(parameterReference, (reference, name: string) => {
+      if (keepDatatypes && name.endsWith(".datatype")) {
+        return reference;
+      }
       const value = entities.get(name);
       if (value === undefined) {
         throw new Error(
@@ -117,9 +249,12 @@ const readDtd = (input: string): Dtd => {
             : `DTD: undefined parameter entity %${name};`,
         );
       }
-      return expand(value, depth + 1);
+      return expandWith(value, keepDatatypes, depth + 1);
     });
   };
+  const expand = (text: string): string => expandWith(text, false);
+  const expandKeepingDatatypes = (text: string): string =>
+    expandWith(text, true);
 
   let text = input;
   let position = 0;
@@ -171,7 +306,7 @@ const readDtd = (input: string): Dtd => {
       const body = declaration.slice(keyword.length);
 
       if (keyword === "ENTITY") {
-        readEntity(body, entities, external, expand);
+        readEntity(body, entities, external, expandKeepingDatatypes);
       } else if (keyword === "ELEMENT") {
         const [name] = tokenize(expand(body));
         if (name === undefined) fail("<!ELEMENT> without a name");
@@ -190,7 +325,14 @@ const readDtd = (input: string): Dtd => {
     throw new Error("DTD: unterminated conditional section");
   }
 
-  return { entities, external, elements, attlists, expand };
+  return {
+    entities,
+    external,
+    elements,
+    attlists,
+    expand,
+    expandKeepingDatatypes,
+  };
 };
 
 const readEntity = (
@@ -222,7 +364,8 @@ const readEntity = (
   if ((quote !== '"' && quote !== "'") || end === -1) {
     throw new Error(`DTD: malformed value of %${name};`);
   }
-  // References in an entity value are expanded when it is declared.
+  // References in an entity value are expanded when it is declared, except
+  // datatypes, which stay as references so attributes keep their type.
   entities.set(name, expand(value.slice(1, end)));
 };
 
@@ -307,11 +450,13 @@ const tokenize = (text: string): string[] => {
 };
 
 /**
- * Returns the attribute names from the tokens of attribute definitions:
- * a name, a type and a default each.
+ * Reads attribute definitions from their tokens: a name, a type and a
+ * default each.
  */
-const attributeNames = (tokens: string[]): string[] => {
-  const names: string[] = [];
+const attributeDefinitions = (
+  tokens: string[],
+): { name: string; type: string }[] => {
+  const definitions: { name: string; type: string }[] = [];
   let i = 0;
   while (i < tokens.length) {
     const name = tokens[i++];
@@ -324,7 +469,7 @@ const attributeNames = (tokens: string[]): string[] => {
     if (i > tokens.length) {
       throw new Error(`DTD: attribute ${name} has no default`);
     }
-    names.push(name);
+    definitions.push({ name, type });
   }
-  return names;
+  return definitions;
 };

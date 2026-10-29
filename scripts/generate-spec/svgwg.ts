@@ -1,5 +1,5 @@
 import { getRoot, isElement, parse, type SvgElement } from "../../src";
-import { sortNames, type ElementData, type SpecData } from "./model";
+import { sortNames, type ElementData, type SpecNames } from "./model";
 
 /**
  * Names the definitions files refer to but do not define, by kind. The svgwg
@@ -50,7 +50,9 @@ interface Definitions {
  * defines them in one list and the copy in definitions-filters.xml is the
  * older SVG 1.1 one.
  */
-export const readSvg2 = (texts: readonly string[]): SpecData => {
+export const readSvg2 = (
+  texts: readonly string[],
+): SpecNames & { interfaces: Map<string, string> } => {
   const files = texts.map(readDefinitions);
   const [main] = files;
   if (main === undefined) {
@@ -81,6 +83,8 @@ export const readSvg2 = (texts: readonly string[]): SpecData => {
 
   const elements = new Map<string, ElementData>();
   const groups = new Map<string, string[]>();
+  /** The DOM interface of each element, such as `SVGRectElement`. */
+  const interfaces = new Map<string, string>();
 
   for (const file of files) {
     for (const node of file.elements) {
@@ -88,6 +92,12 @@ export const readSvg2 = (texts: readonly string[]): SpecData => {
       if (elements.has(name)) {
         throw new Error(`svgwg: element ${name} is defined twice`);
       }
+
+      const [domInterface] = list(node, "interfaces");
+      if (domInterface === undefined) {
+        throw new Error(`svgwg: element ${name} has no interface`);
+      }
+      interfaces.set(name, domInterface);
 
       const element: ElementData = {
         groups: [],
@@ -179,7 +189,7 @@ export const readSvg2 = (texts: readonly string[]): SpecData => {
     }
   }
 
-  return { elements, groups, presentationAttributes };
+  return { elements, groups, presentationAttributes, interfaces };
 };
 
 const readDefinitions = (text: string): Definitions => {

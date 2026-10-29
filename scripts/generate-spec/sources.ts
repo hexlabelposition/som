@@ -63,3 +63,15 @@ export const webrefSpecs: readonly string[] = [
   "css-masking-1",
   "svg-animations",
 ];
+
+/**
+ * `@webref/idl` files with the interfaces of the SVG 2 elements, which say how
+ * their attributes are reflected (B34).
+ */
+export const webrefIdlFiles: readonly string[] = [
+  "SVG",
+  "filter-effects",
+  "css-masking",
+  "svg-animations",
+  "svg-paths",
+];

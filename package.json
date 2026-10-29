@@ -54,7 +54,9 @@
     "@tabler/icons": "3.49.0",
     "@types/node": "^22.20.5",
     "@vitest/browser-playwright": "^5.0.5",
+    "@webref/css": "8.7.8",
     "@webref/elements": "2.9.2",
+    "@webref/idl": "3.86.0",
     "bootstrap-icons": "1.13.2",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
@@ -70,6 +72,7 @@
     "tsdown": "^0.23.2",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.0",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "webidl2": "24.5.0"
   }
 }
