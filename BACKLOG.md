@@ -83,6 +83,7 @@ Read, write and normalize path data (`d`).
 - [ ] **B48** Transforms: parse and compose matrices, apply to paths
 - [ ] **B49** Optimization passes
 - [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
+- [ ] **B57** Namespace export like zod's `z`: `import { s } from "@hexlabelposition/som"` (A19, ARCHITECTURE §4); decide named exports, types and the name, and check tree-shaking first
 - [x] **B52** Deno in CI: the `node` test project runs on Deno
 
 ## Open questions

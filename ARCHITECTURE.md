@@ -4,26 +4,27 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 
 ## 1. Decision log
 
-| #   | Decision                                                                                                                                    | Status   |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| A1  | Single package `@hexlabelposition/som` - SOM (SVG Object Model), MIT, TypeScript, ESM-only                                                  | Accepted |
-| A2  | Zero runtime dependencies                                                                                                                   | Accepted |
-| A3  | The parser, serializer and AST are part of som itself, not a dependency on another SVG library                                              | Accepted |
-| A4  | The AST is made of plain objects, mutated in place and copied explicitly with `clone()`                                                     | Accepted |
-| A5  | Pure JavaScript, no DOM: Node.js ≥ 22, Bun, browsers                                                                                        | Accepted |
-| A6  | Round trips are lossless at the tree level; lexical details are normalized (§5)                                                             | Accepted |
-| A7  | Single entry point `@hexlabelposition/som`; modules are not split into subpath exports such as `/spec` or `/paths` (§4)                     | Accepted |
-| A8  | Source organized as folders inside one package, not as workspace packages                                                                   | Accepted |
-| A9  | v0.1 scope: `parse`, `stringify` + `attributes`                                                                                             | Accepted |
-| A10 | Parsing is strict: only well-formed XML is accepted                                                                                         | Accepted |
-| A11 | Parsing never loads external entities and enforces fixed resource limits                                                                    | Accepted |
-| A12 | Parse errors are `SvgParseError` with stable `code` values and a source position                                                            | Accepted |
-| A13 | Dependency pinning policy (§8)                                                                                                              | Accepted |
-| A14 | Parsing and serialization are separate modules, `parse` and `stringify`, that do not depend on each other                                   | Accepted |
-| A15 | No options for now: functions take only their data (`parse(input)`, `stringify(document)`); options come later as an optional last argument | Accepted |
-| A16 | v0.1 `attributes` helpers cover the `style` and `class` attributes; effective values and bulk operations are deferred (§6)                  | Accepted |
-| A17 | Mutating helpers return `void`; they return a value only when it tells the caller something new, like `toggleClass` (§2)                    | Accepted |
-| A18 | Spec data comes from pinned W3C sources; browser support from MDN BCD is a separate layer that never changes what is valid (§11)            | Accepted |
+| #   | Decision                                                                                                                                                      | Status   |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| A1  | Single package `@hexlabelposition/som` - SOM (SVG Object Model), MIT, TypeScript, ESM-only                                                                    | Accepted |
+| A2  | Zero runtime dependencies                                                                                                                                     | Accepted |
+| A3  | The parser, serializer and AST are part of som itself, not a dependency on another SVG library                                                                | Accepted |
+| A4  | The AST is made of plain objects, mutated in place and copied explicitly with `clone()`                                                                       | Accepted |
+| A5  | Pure JavaScript, no DOM: Node.js ≥ 22, Bun, browsers                                                                                                          | Accepted |
+| A6  | Round trips are lossless at the tree level; lexical details are normalized (§5)                                                                               | Accepted |
+| A7  | Single entry point `@hexlabelposition/som`; modules are not split into subpath exports such as `/spec` or `/paths` (§4)                                       | Accepted |
+| A8  | Source organized as folders inside one package, not as workspace packages                                                                                     | Accepted |
+| A9  | v0.1 scope: `parse`, `stringify` + `attributes`                                                                                                               | Accepted |
+| A10 | Parsing is strict: only well-formed XML is accepted                                                                                                           | Accepted |
+| A11 | Parsing never loads external entities and enforces fixed resource limits                                                                                      | Accepted |
+| A12 | Parse errors are `SvgParseError` with stable `code` values and a source position                                                                              | Accepted |
+| A13 | Dependency pinning policy (§8)                                                                                                                                | Accepted |
+| A14 | Parsing and serialization are separate modules, `parse` and `stringify`, that do not depend on each other                                                     | Accepted |
+| A15 | No options for now: functions take only their data (`parse(input)`, `stringify(document)`); options come later as an optional last argument                   | Accepted |
+| A16 | v0.1 `attributes` helpers cover the `style` and `class` attributes; effective values and bulk operations are deferred (§6)                                    | Accepted |
+| A17 | Mutating helpers return `void`; they return a value only when it tells the caller something new, like `toggleClass` (§2)                                      | Accepted |
+| A18 | Spec data comes from pinned W3C sources; browser support from MDN BCD is a separate layer that never changes what is valid (§11)                              | Accepted |
+| A19 | The API is exported as one namespace object, `import { s } from "@hexlabelposition/som"`, as zod does with `z`, instead of separate named functions (§4, B57) | Proposed |
 
 ## 2. Data model
 
@@ -173,6 +174,24 @@ Modules are not published as subpath exports such as `@hexlabelposition/som/spec
 2. Modules have no side effects at import time and no shared state, so unused code is tree-shaken.
 
 The one possible exception is a React integration, which is not planned yet. It would need `react` as a peer dependency, which the main entry point cannot have (A2), so it would be a separate entry point, `@hexlabelposition/som/react`, or a separate package (§3, rule 5). That choice is made if the integration is added.
+
+### Namespace export (proposed)
+
+The API is planned to be exported as one namespace object, the way zod exports `z` (A19, B57):
+
+```ts
+import { s } from "@hexlabelposition/som";
+
+const document = s.parse(input);
+s.addClass(s.getRoot(document), "icon");
+```
+
+One import gives the whole API and editor completion on `s.`, and nothing has to be imported name by name. It is not done yet; B57 decides these points first:
+
+- **Tree-shaking.** `s` is an ES module namespace (`export * as s`), not a plain object, so bundlers can still drop members that are not used. B57 checks this with Rollup, esbuild and webpack before the change.
+- **Named exports.** Whether the functions stay available as named exports next to `s`, or only through it. Removing them is a breaking change.
+- **Types.** Whether node types are reached as `s.SvgElement` or stay separate type exports.
+- **Name.** `s` or another short name.
 
 - Every exported function has an explicit return type and TSDoc comment.
 - Every build is validated with publint and arethetypeswrong (`esm-only` profile, `error` level).
