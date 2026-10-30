@@ -1,4 +1,5 @@
-import { parseList, parseWhole, scanNumber, toFinite } from "./number";
+import { scanNumber, toFinite } from "../shared";
+import { parseList, parseWhole } from "./number";
 
 /**
  * The units a length can have: `""` for user units (a plain number), `"%"`,

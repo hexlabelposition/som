@@ -1,4 +1,5 @@
-import { isWhitespace, parseNumberList, trimWhitespace } from "./number";
+import { isWhitespace } from "../shared";
+import { parseNumberList, trimWhitespace } from "./number";
 
 /**
  * The value of a `viewBox` attribute: the rectangle of user space that is

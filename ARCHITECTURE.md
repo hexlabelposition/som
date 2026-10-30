@@ -135,8 +135,12 @@ som/
 │   │   ├── replace.ts      #   replaceColor
 │   │   ├── scan.ts         #   finds colors in a tree, SvgColorUse
 │   │   └── index.ts
-│   ├── paths/              # later
-│   └── shared/             # helpers used by several modules (XML character rules, CSS tokenizer, …), never exported
+│   ├── paths/              # path data (§13)
+│   │   ├── types.ts        #   SvgPathSegment and one type per command
+│   │   ├── parse.ts        #   parsePath
+│   │   ├── stringify.ts    #   stringifyPath
+│   │   └── index.ts
+│   └── shared/             # helpers used by several modules (XML character rules, CSS tokenizer, number scanner, …), never exported
 ├── test/
 │   ├── api-docs.test.ts    # every public export has TSDoc and a return type
 │   ├── corpus.test.ts      # every fixture parses, round-trips, prints stably
@@ -162,7 +166,10 @@ som/
                 ← stringify
                 ← attributes ← colors
                              ← spec
+          ← paths
    ```
+
+   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6).
 
    `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21). `colors` also uses `ast` and `shared` directly: the CSS tokenizer that `attributes` uses for `style` lives in `shared`, so `colors` reads `style` attributes and `<style>` sheets with it (§12).
 
@@ -535,7 +542,35 @@ replaceColor(document, "red", "#00f"); // 2
 
 ## 13. Paths
 
-The paths module reads, writes and normalizes path data, the value of `d` (v0.4). `parsePath(text)` and `stringifyPath(path)` work on strings (§3, rule 3; B44); normalization converts relative commands to absolute and shorthand commands to full ones (B45). This section records how numbers are kept and how path data is written (B43, A23); the data model and parse errors are decided in B44.
+The paths module reads, writes and normalizes path data, the value of `d` (v0.4). `parsePath(text)` and `stringifyPath(path)` work on strings (§3, rule 3; B44); normalization converts relative commands to absolute and shorthand commands to full ones (B45). This section records the data model and parsing (B44), how numbers are kept and how path data is written (B43, A23).
+
+### Data model
+
+`parsePath(text)` returns an array of `SvgPathSegment`, one plain object per command, discriminated by `type`, the command letter as written:
+
+```ts
+parsePath("M10,20l5-5 10 0a5 5 0 015 5Z");
+// [
+//   { type: "M", x: 10, y: 20 },
+//   { type: "l", x: 5, y: -5 },
+//   { type: "l", x: 10, y: 0 },
+//   { type: "a", rx: 5, ry: 5, rotation: 0, largeArc: false, sweep: true, x: 5, y: 5 },
+//   { type: "Z" },
+// ]
+```
+
+- **Named fields, not value arrays.** The SVG 2 `getPathData()` draft uses `{ type, values: [...] }`; named fields (`x1`, `y1`, `x2`, `y2`, `x`, `y`, `rx`, `ry`, `rotation`) let TypeScript check each command and read like the colors (§12). Each command has its own type, such as `SvgCubicCurveTo` or `SvgArcTo`, with both letters: `"C" | "c"`.
+- **Arc flags are booleans**, `largeArc` and `sweep`, written as `0` and `1`. Arc radii are kept as written, including a negative sign, which renderers ignore.
+- **One segment per set of arguments.** A letter followed by several sets is the command repeated, and the sets after `M` or `m` are `L` or `l` (see Output format). `Z` and `z` mean the same and keep their case.
+- **The path is a plain array.** No wrapper object, so it can be edited, mapped and stored as JSON like the AST (§2).
+
+### Parsing
+
+- **Grammar.** SVG 1.1 and SVG 2 path data: the first command is `M` or `m`; arguments are separated by SVG whitespace, a comma, or both, or by nothing when the next number starts with a sign or `.` (`M0-1`, `l.5.5`); a comma may stand between sets of arguments but not before the first one or after the last one; `Z` takes no arguments; an arc flag is one `0` or `1`, so `a5 5 0 015 5` reads. Numbers follow CSS `<number>` with the scanner of the typed reads (§6): `.5` and `1e3`, but not `5.`, which SVG 1.1 allowed and browsers reject; a number too large to be finite is invalid. The SVG 2 draft's bearing command `B` is not read, as no browser implements it.
+- **Empty is valid.** Empty text or whitespace only is an empty path, `[]`, which SVG defines as rendering nothing.
+- **Invalid is `undefined`, as a whole.** Browsers draw the commands before an error, but a path cut at the error would lose the rest when written back, so `parsePath` returns `undefined`, as the typed reads do (A21). A function that reads the valid prefix can be added for geometry (B47) if it needs one.
+- **Corpus.** Every one of the 35,317 `d` attributes in the fixtures and icon sets parses, reads back from `stringifyPath` unchanged, and is written the same way again (§7). Property-based tests check the same for random paths, and that any valid spelling of a random path, with or without repeated letters, separators and exponents, reads as that path.
+- **Bundle size** (Bun 1.4 `bun build --minify`): `parsePath` alone is about 1.5 kB minified, 0.7 kB gzipped, `stringifyPath` 1.0 kB and 0.5 kB. A bundle of `parse` alone does not change.
 
 ### Numbers
 
@@ -557,4 +592,4 @@ M10,20l5-5 10 0h10 .5Z   →   M10 20 l5 -5 l10 0 h10 h0.5 Z
 - **One separator.** The letter is followed directly by its first number, numbers are separated by one space, segments by one space, and there is no space at the start or the end: `M10 20 L30 40 A5 5 0 0 1 50 60 Z`. A negative number or one that starts with `.` is still separated by a space, leading zeros are written (`0.5`), and arc flags are written as `0` and `1`. An empty path is `""`.
 - **Compact output is optimization.** The shortest form, without spaces before `-` or `.`, without repeated letters, with joined arc flags (`a5 5 0 01 50 60`), and choosing relative or absolute per segment, saves bytes but is harder to read and to compare in a diff. It belongs to the optimization passes (B49), with rounding.
 
-Most paths in the icon corpus are already close to this form: Tabler Icons writes `M6 8l5 8`, which becomes `M6 8 l5 8`.
+Most paths in the icon corpus are already close to this form: Tabler Icons writes `M6 8l5 8`, which becomes `M6 8 l5 8`. Over the whole corpus the output is about 25% longer than the input, mostly from the separators and repeated letters that minified icons such as Simple Icons leave out.

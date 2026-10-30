@@ -5,11 +5,15 @@ import { describe, expect, test } from "vitest";
 import {
   clone,
   extractColors,
+  findAll,
   formatColor,
+  isElement,
   normalizeColor,
   parse,
+  parsePath,
   replaceColor,
   stringify,
+  stringifyPath,
   type SvgColor,
   type SvgColorUse,
 } from "../src";
@@ -18,7 +22,9 @@ import {
 // round-trips (A6) and produces stable output, that is, stringify() of the
 // re-parsed output gives the same string again. The colors check (§12) runs
 // on the same files: every color extractColors reports, replaceColor changes
-// in the place it reports it.
+// in the place it reports it. So does the paths check (§13): every `d`
+// attribute parses, reads back from stringifyPath unchanged, and is written
+// the same way again.
 
 const fixtures = fileURLToPath(new URL("fixtures/", import.meta.url));
 const modules = fileURLToPath(new URL("../node_modules/", import.meta.url));
@@ -115,6 +121,31 @@ function checkColors(input: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Returns a description of the first failed paths check, or `undefined` when
+ * every `d` attribute parses, round-trips through stringifyPath and is
+ * written the same way again.
+ */
+function checkPaths(input: string): string | undefined {
+  try {
+    const elements = findAll(parse(input), isElement);
+    for (const { attributes } of elements) {
+      const { d } = attributes;
+      if (d === undefined) continue;
+      const path = parsePath(d);
+      if (path === undefined) return `invalid path data: ${d.slice(0, 40)}`;
+      const output = stringifyPath(path);
+      expect(parsePath(output)).toEqual(path);
+      if (stringifyPath(parsePath(output) ?? []) !== output) {
+        return `path output is not stable: ${output.slice(0, 40)}`;
+      }
+    }
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  return undefined;
+}
+
 describe("fixtures", () => {
   describe.each(fixtureCorpora)("%s", (corpus) => {
     const directory = join(fixtures, corpus);
@@ -126,7 +157,9 @@ describe("fixtures", () => {
 
     test.each(files)("%s", (file) => {
       const input = readFileSync(join(directory, file), "utf8");
-      expect(check(input) ?? checkColors(input)).toBe(undefined);
+      expect(check(input) ?? checkColors(input) ?? checkPaths(input)).toBe(
+        undefined,
+      );
     });
   });
 });
@@ -141,7 +174,7 @@ describe("icon sets", () => {
     const failures: string[] = [];
     for (const file of files) {
       const input = readFileSync(join(directory, file), "utf8");
-      const failure = check(input) ?? checkColors(input);
+      const failure = check(input) ?? checkColors(input) ?? checkPaths(input);
       if (failure !== undefined) failures.push(`${file}: ${failure}`);
     }
     expect(failures).toEqual([]);

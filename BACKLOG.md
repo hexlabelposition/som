@@ -73,7 +73,7 @@ Find, normalize and replace colors in a document.
 Read, write and normalize path data (`d`).
 
 - [x] **B43** Decide numeric precision and output format
-- [ ] **B44** `parsePath`, `stringifyPath`; every corpus path round-trips
+- [x] **B44** `parsePath`, `stringifyPath`; every corpus path round-trips
 - [ ] **B45** Normalize: relative → absolute, shorthand → full commands
 - [ ] **B46** Release v0.4.0
 

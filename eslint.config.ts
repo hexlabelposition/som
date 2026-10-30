@@ -17,6 +17,7 @@ const modules: Record<string, string[]> = {
   attributes: ["ast", "shared"],
   colors: ["ast", "attributes", "shared"],
   spec: ["ast", "attributes", "shared"],
+  paths: ["shared"],
 };
 
 const order = Object.keys(modules);

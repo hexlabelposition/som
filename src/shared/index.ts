@@ -14,3 +14,4 @@ export {
   type StyleDeclaration,
 } from "./css";
 export { splitImportant } from "./important";
+export { isWhitespace, scanNumber, skipDigits, toFinite } from "./number";
