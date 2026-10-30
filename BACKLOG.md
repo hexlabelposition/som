@@ -14,7 +14,7 @@ An empty project that builds, lints and tests.
 - [x] **B3** `package.json`: ESM, `sideEffects: false`, Node >= 22, `exports`, `packageManager`
 - [x] **B4** tsdown: entry `src/index.ts`, `platform: "neutral"`, `target: "es2022"`
 - [x] **B5** Folder structure from ARCHITECTURE §3
-- [x] **B6** ESLint rules: imports only through folder `index.ts`, no cycles, `internal/` not exported, `parse` and `stringify` don't import each other (A14)
+- [x] **B6** ESLint rules: imports only through folder `index.ts`, no cycles, `shared/` not exported, `parse` and `stringify` don't import each other (A14)
 - [x] **B7** CI: lint, format, Markdown check (`docs:check`), typecheck, build and `npm pack --dry-run` on Node 24; tests on Node 22/24/26, Bun 1.2.23 + latest, Chromium/Firefox/WebKit
 - [x] **B8** actionlint for workflow changes
 - [x] **B10** Dependabot for GitHub Actions: SHA pins, weekly, 7-day cooldown (A13)

@@ -1,6 +1,6 @@
 import type { SvgElement } from "../ast";
 import { getStyleProperty } from "../attributes";
-import { splitImportant } from "../internal";
+import { splitImportant } from "../shared";
 import { svg11Elements, svg11PresentationAttributes } from "./generated/svg11";
 import { svg2Elements, svg2PresentationAttributes } from "./generated/svg2";
 import type { SvgVersion } from "./types";

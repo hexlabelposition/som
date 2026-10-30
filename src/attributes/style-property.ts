@@ -1,5 +1,5 @@
 import type { SvgElement } from "../ast";
-import { normalizeName, scanStyle, type StyleDeclaration } from "../internal";
+import { normalizeName, scanStyle, type StyleDeclaration } from "../shared";
 import { formatDeclaration, winningDeclarations } from "./style";
 
 /**

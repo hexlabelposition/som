@@ -4,7 +4,7 @@ import {
   scanStylesheet,
   splitImportant,
   type StyleDeclaration,
-} from "../internal";
+} from "../shared";
 import { asciiLowercase, trim, type SvgColor } from "./color";
 import { readPaint } from "./paint";
 

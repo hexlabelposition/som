@@ -1,5 +1,5 @@
 import type { SvgChild, SvgDocument, SvgElement, XmlDeclaration } from "../ast";
-import { isXmlWhitespace, scanName } from "../internal";
+import { isXmlWhitespace, scanName } from "../shared";
 import { checkRaw, escapeAttribute, escapeText } from "./escape";
 
 /**

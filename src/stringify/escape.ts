@@ -1,4 +1,4 @@
-import { scanXmlChar } from "../internal";
+import { scanXmlChar } from "../shared";
 
 /**
  * Escapes text content: `&`, `<` and `>` become references, and so does `\r`,

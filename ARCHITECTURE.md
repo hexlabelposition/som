@@ -135,7 +135,7 @@ som/
 │   │   ├── scan.ts         #   finds colors in a tree, SvgColorUse
 │   │   └── index.ts
 │   ├── paths/              # later
-│   └── internal/           # shared helpers (XML character rules, …), never exported
+│   └── shared/             # helpers used by several modules (XML character rules, CSS tokenizer, …), never exported
 ├── test/
 │   ├── api-docs.test.ts    # every public export has TSDoc and a return type
 │   ├── corpus.test.ts      # every fixture parses, round-trips, prints stably
@@ -157,18 +157,18 @@ som/
 2. **Dependencies flow one way** and never form cycles:
 
    ```text
-   internal ← ast ← parse
-                  ← stringify
-                  ← attributes ← colors
-                               ← spec
+   shared ← ast ← parse
+                ← stringify
+                ← attributes ← colors
+                             ← spec
    ```
 
-   `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21). `colors` also uses `ast` and `internal` directly: the CSS tokenizer that `attributes` uses for `style` lives in `internal`, so `colors` reads `style` attributes and `<style>` sheets with it (§12).
+   `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21). `colors` also uses `ast` and `shared` directly: the CSS tokenizer that `attributes` uses for `style` lives in `shared`, so `colors` reads `style` attributes and `<style>` sheets with it (§12).
 
-   `parse` and `stringify` never import each other (A14). They share only `ast` and `internal`, such as the XML character rules, so either one can be used, tested and tree-shaken on its own. Code that needs both, like the round-trip tests, lives outside them in `test/`.
+   `parse` and `stringify` never import each other (A14). They share only `ast` and `shared`, such as the XML character rules, so either one can be used, tested and tree-shaken on its own. Code that needs both, like the round-trip tests, lives outside them in `test/`.
 
 3. **Value-level utilities do not depend on `ast`.** Functions like `parsePath("M0 0 L10 10")` or `parseColor("#fff")` work on strings, so they are usable with framework props, DOM attributes or any other source. AST-level functions (`replaceColor(doc, …)`) are built on top of them.
-4. **`internal/` is never exported**, directly or through re-exports.
+4. **`shared/` is never exported**, directly or through re-exports.
 5. **A future separate package** is extracted from a folder into a workspace only when it needs its own dependencies or release cycle.
 
 ## 4. Public API
@@ -528,6 +528,6 @@ replaceColor(document, "red", "#00f"); // 2
 - **Matching is by normalized color.** `replaceColor` compares `formatColor(normalizeColor(…))`, so `#f00`, `red`, `rgb(100% 0% 0%)` and `hsl(0 100% 50%)` match each other, but not `#f008`, which has another alpha. `from` and `to` are `SvgColor` values or strings; a string that does not parse as a color throws a `TypeError`, so `none` or a value with `;` can never be written. A string `to` is written as given, trimmed, an `SvgColor` with `formatColor`.
 - **Only the color is rewritten.** In an attribute, the whitespace around it stays; in a declaration, `!important`, other declarations, comments and spacing stay; after `url(…)`, only the fallback changes. A declaration value with a comment inside, such as `fill: red /* x */`, is not a color and is left alone.
 - **The count is returned.** `replaceColor` returns how many colors it replaced, which the caller cannot see otherwise (A17).
-- **`<style>` elements** are recognized by the unprefixed name `style`, as `getPresentationValue` ignores prefixed elements; color attributes are read on any element (A21). The text is split into rules by `scanStylesheet` in `internal`: at-rules that hold rules (`@media`, `@supports`, `@container`, `@layer`, `@scope`, `@starting-style`, `@document`, `@keyframes`, with or without a vendor prefix) are read recursively, the block of any other at-rule is read as declarations, and nested CSS rules inside a declaration block are skipped. Each text and CDATA child is read on its own, so a rule split by an XML comment is not read.
+- **`<style>` elements** are recognized by the unprefixed name `style`, as `getPresentationValue` ignores prefixed elements; color attributes are read on any element (A21). The text is split into rules by `scanStylesheet` in `shared`: at-rules that hold rules (`@media`, `@supports`, `@container`, `@layer`, `@scope`, `@starting-style`, `@document`, `@keyframes`, with or without a vendor prefix) are read recursively, the block of any other at-rule is read as declarations, and nested CSS rules inside a declaration block are skipped. Each text and CDATA child is read on its own, so a rule split by an XML comment is not read.
 - **Corpus.** For every fixture and icon, replacing each color the document has with one it does not have changes exactly the uses `extractColors` reports for it, nothing else moves, and the result still round-trips (§7).
 - **Bundle size** (Bun 1.4 `bun build --minify`): `extractColors` alone is about 11.6 kB minified, 4.6 kB gzipped, `replaceColor` about 13.9 kB and 5.4 kB, most of it `parseColor` with the named color table. A bundle of `parse` alone does not change.

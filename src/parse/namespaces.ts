@@ -1,4 +1,4 @@
-import { isNameStartChar } from "../internal";
+import { isNameStartChar } from "../shared";
 import type { Scanner } from "./scanner";
 
 const XML_NAMESPACE = "http://www.w3.org/XML/1998/namespace";

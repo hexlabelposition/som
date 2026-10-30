@@ -46,8 +46,8 @@ Before pushing, run `lint`, `format:check`, `docs:check`, `typecheck` and `test:
 Source code lives in domain folders under `src/` (ARCHITECTURE §3): `ast`, `parse`, `stringify`, `attributes`, `spec`, `colors` and later `paths` and others. ESLint enforces the boundaries between them.
 
 - **A folder's `index.ts` is its public API.** Other folders import only from it, never from its internal files.
-- **Dependencies flow one way** and never form cycles. `parse` and `stringify` do not import each other (A14); code shared between them goes in `internal/`.
-- **`internal/` is never exported**, directly or through re-exports.
+- **Dependencies flow one way** and never form cycles. `parse` and `stringify` do not import each other (A14); code shared between them goes in `shared/`.
+- **`shared/` is never exported**, directly or through re-exports.
 - **Value-level functions do not depend on `ast`.** `parsePath("M0 0")` and `parseColor("#fff")` work on strings; AST-level functions are built on top of them.
 - **Export names are unique across the library**, because the root entry point re-exports every module: `parsePath` and `parseColor`, not two functions named `parse`.
 - **No side effects at import time** and no state shared between modules, so unused code is removed by tree-shaking.

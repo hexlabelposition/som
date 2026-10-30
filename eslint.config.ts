@@ -10,13 +10,13 @@ import tseslint from "typescript-eslint";
  * modules listed above it, which keeps the graph free of cycles.
  */
 const modules: Record<string, string[]> = {
-  internal: [],
-  ast: ["internal"],
-  parse: ["ast", "internal"],
-  stringify: ["ast", "internal"],
-  attributes: ["ast", "internal"],
-  colors: ["ast", "attributes", "internal"],
-  spec: ["ast", "attributes", "internal"],
+  shared: [],
+  ast: ["shared"],
+  parse: ["ast", "shared"],
+  stringify: ["ast", "shared"],
+  attributes: ["ast", "shared"],
+  colors: ["ast", "attributes", "shared"],
+  spec: ["ast", "attributes", "shared"],
 };
 
 const order = Object.keys(modules);
@@ -28,9 +28,7 @@ for (const [name, deps] of Object.entries(modules)) {
   }
 }
 
-const publicModules = Object.keys(modules).filter(
-  (name) => name !== "internal",
-);
+const publicModules = Object.keys(modules).filter((name) => name !== "shared");
 
 const moduleIndex = (names: string[]) =>
   names.map((name) => ({
@@ -103,11 +101,11 @@ export default defineConfig(
               from: { file: { categories: "entry" } },
               allow: { to: moduleIndex(publicModules) },
             },
-            // `internal` is never part of the public API, not even as a re-export.
+            // `shared` is never part of the public API, not even as a re-export.
             {
               disallow: {
                 to: {
-                  element: { type: "module", captured: { name: "internal" } },
+                  element: { type: "module", captured: { name: "shared" } },
                 },
                 dependency: { nodeKind: "export" },
               },

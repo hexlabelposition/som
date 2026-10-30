@@ -1,4 +1,4 @@
-import { isXmlChar, scanName } from "../internal";
+import { isXmlChar, scanName } from "../shared";
 import { MAX_ENTITY_EXPANSIONS, MAX_EXPANDED_LENGTH } from "./limits";
 import type { Scanner } from "./scanner";
 

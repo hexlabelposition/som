@@ -4,7 +4,7 @@ import {
   scanStyle,
   splitImportant,
   type StyleDeclaration,
-} from "../internal";
+} from "../shared";
 
 /**
  * Parses a `style` attribute into a property map.

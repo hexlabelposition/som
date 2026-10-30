@@ -1,4 +1,4 @@
-import { isXmlWhitespace, scanName, scanXmlChar } from "../internal";
+import { isXmlWhitespace, scanName, scanXmlChar } from "../shared";
 import { createParseError, type SvgParseErrorCode } from "./errors";
 
 /**

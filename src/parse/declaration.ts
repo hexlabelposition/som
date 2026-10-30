@@ -1,5 +1,5 @@
 import type { XmlDeclaration } from "../ast";
-import { isXmlWhitespace } from "../internal";
+import { isXmlWhitespace } from "../shared";
 import type { Scanner } from "./scanner";
 
 /**
