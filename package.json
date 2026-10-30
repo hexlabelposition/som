@@ -39,7 +39,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check . '!**/*.md'",
     "docs:check": "prettier --check '**/*.md'",
-    "test": "vitest run",
+    "test": "vitest run --project node --project 'browser (chromium)' --project 'browser (firefox)'",
     "test:node": "vitest run --project node",
     "test:browser": "vitest run --project browser",
     "test:webkit": "sh scripts/test-webkit.sh",
@@ -47,7 +47,7 @@
     "bench:bun": "bun --bun run bench",
     "spec:generate": "bun scripts/generate-spec/index.ts",
     "spec:check": "bun scripts/generate-spec/index.ts --check",
-    "check": "bun run lint && bun run format:check && bun run docs:check && bun run typecheck && bun run spec:check && bun run test:node && bun run test:browser --browser chromium && bun run test:browser --browser firefox && bun run build && npm pack --dry-run"
+    "check": "bun run lint && bun run format:check && bun run docs:check && bun run typecheck && bun run spec:check && bun run test && bun run build && npm pack --dry-run"
   },
   "devDependencies": {
     "@arethetypeswrong/core": "^0.18.5",

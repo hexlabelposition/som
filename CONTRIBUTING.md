@@ -27,7 +27,7 @@ Playwright builds its browsers for Ubuntu and Debian. On other Linux distributio
 | `bun run format`        | Format all files with Prettier                                                                                                    |
 | `bun run format:check`  | Check formatting of everything except Markdown                                                                                    |
 | `bun run docs:check`    | Check formatting of Markdown files                                                                                                |
-| `bun run test`          | Run all tests: Node.js and every browser                                                                                          |
+| `bun run test`          | Run the tests in Node.js, Chromium and Firefox; WebKit runs with `test:webkit`                                                    |
 | `bun run test:node`     | Run the tests in Node.js                                                                                                          |
 | `bun run test:browser`  | Run the tests in browsers; add `--browser chromium` for one                                                                       |
 | `bun run test:webkit`   | Run the browser tests in WebKit inside the CI Playwright image; needs Docker                                                      |
