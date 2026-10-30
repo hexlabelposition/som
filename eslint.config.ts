@@ -15,7 +15,7 @@ const modules: Record<string, string[]> = {
   parse: ["ast", "internal"],
   stringify: ["ast", "internal"],
   attributes: ["ast", "internal"],
-  colors: ["attributes"],
+  colors: ["ast", "attributes", "internal"],
   spec: ["ast", "attributes", "internal"],
 };
 

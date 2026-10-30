@@ -1,11 +1,6 @@
 import type { SvgElement } from "../ast";
-import {
-  formatDeclaration,
-  normalizeName,
-  scanStyle,
-  winningDeclarations,
-  type StyleDeclaration,
-} from "./style";
+import { normalizeName, scanStyle, type StyleDeclaration } from "../internal";
+import { formatDeclaration, winningDeclarations } from "./style";
 
 /**
  * Returns the value of a property in the `style` attribute of an element, or

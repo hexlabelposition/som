@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseStyle, scanStyle, stringifyStyle } from "./style";
+import { parseStyle, stringifyStyle } from "./style";
 
 describe("parseStyle", () => {
   test("parses declarations", () => {
@@ -94,17 +94,4 @@ describe("stringifyStyle", () => {
   ])("rejects %j (%s)", (properties) => {
     expect(() => stringifyStyle(properties)).toThrow(TypeError);
   });
-});
-
-test("scanStyle reports positions", () => {
-  expect(scanStyle(" fill : red ; x")).toEqual([
-    {
-      name: "fill",
-      value: "red",
-      start: 1,
-      valueStart: 8,
-      valueEnd: 11,
-      end: 13,
-    },
-  ]);
 });

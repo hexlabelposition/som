@@ -135,13 +135,14 @@ interface ColorArguments {
 
 const whitespace = /^[ \t\n\f\r]+|[ \t\n\f\r]+$/g;
 
-const trim = (text: string): string => text.replace(whitespace, "");
+/** Removes SVG whitespace from both ends of a text. */
+export const trim = (text: string): string => text.replace(whitespace, "");
 
 /**
  * Lowercases ASCII letters only, as CSS compares keywords: `toLowerCase`
  * would also map characters such as the Kelvin sign `K` to `k`.
  */
-const asciiLowercase = (text: string): string =>
+export const asciiLowercase = (text: string): string =>
   text.replace(/[A-Z]/g, (char) =>
     String.fromCharCode(char.charCodeAt(0) + 32),
   );

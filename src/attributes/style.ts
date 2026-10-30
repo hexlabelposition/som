@@ -1,31 +1,10 @@
-import { splitImportant } from "../internal";
-
-/**
- * A declaration in a `style` attribute, with its position in the text.
- */
-export interface StyleDeclaration {
-  /**
-   * The property name, lowercased unless it is a custom property.
-   */
-  name: string;
-  /**
-   * The value as written, trimmed, including `!important`.
-   */
-  value: string;
-  /**
-   * Where the property name starts.
-   */
-  start: number;
-  /**
-   * Where the value starts and ends, without surrounding whitespace.
-   */
-  valueStart: number;
-  valueEnd: number;
-  /**
-   * The index after the `;` that ends the declaration, or the text length.
-   */
-  end: number;
-}
+import {
+  findStringEnd,
+  normalizeName,
+  scanStyle,
+  splitImportant,
+  type StyleDeclaration,
+} from "../internal";
 
 /**
  * Parses a `style` attribute into a property map.
@@ -122,133 +101,6 @@ export function formatDeclaration(name: string, value: string): string {
   return declaration;
 }
 
-/**
- * Lowercases a property name for comparison, except a custom property.
- */
-export function normalizeName(name: string): string {
-  return name.startsWith("--")
-    ? name
-    : name.replace(/[A-Z]/g, (char) => char.toLowerCase());
-}
-
-const propertyName = /^-?[A-Za-z_\u0080-￿][\w\u0080-￿-]*$/;
-const customName = /^--[\w\u0080-￿-]+$/;
-
-/**
- * Splits a `style` attribute into its valid declarations, in order.
- */
-export function scanStyle(text: string): StyleDeclaration[] {
-  const declarations: StyleDeclaration[] = [];
-  let index = 0;
-
-  while (index < text.length) {
-    index = skipSpaceAndComments(text, index);
-    if (index >= text.length) break;
-    if (text.charCodeAt(index) === 0x3b) {
-      index++;
-      continue;
-    }
-
-    const start = index;
-    const colon = findTopLevel(text, index, true);
-    const end = findTopLevel(text, index, false);
-    index = end < text.length ? end + 1 : end;
-    if (colon >= end) continue;
-
-    const name = text.slice(start, colon).trimEnd();
-    let valueStart = colon + 1;
-    while (valueStart < end && isSpace(text.charCodeAt(valueStart))) {
-      valueStart++;
-    }
-    let valueEnd = end;
-    while (valueEnd > valueStart && isSpace(text.charCodeAt(valueEnd - 1))) {
-      valueEnd--;
-    }
-
-    const custom = name.startsWith("--");
-    if (!(custom ? customName : propertyName).test(name)) continue;
-    if (valueStart === valueEnd && !custom) continue;
-
-    declarations.push({
-      name: normalizeName(name),
-      value: text.slice(valueStart, valueEnd),
-      start,
-      valueStart,
-      valueEnd,
-      end: index,
-    });
-  }
-
-  return declarations;
-}
-
-/**
- * Returns the index of the first `:` (or `;`, if `colon` is false) outside of
- * strings, parentheses, brackets, braces and comments, or the text length.
- * A `;` always ends the search.
- */
-function findTopLevel(text: string, start: number, colon: boolean): number {
-  let depth = 0;
-  let index = start;
-
-  while (index < text.length) {
-    const char = text.charCodeAt(index);
-
-    if (char === 0x22 || char === 0x27) {
-      index = skipString(text, index);
-      continue;
-    }
-    if (char === 0x2f && text.charCodeAt(index + 1) === 0x2a) {
-      index = skipComment(text, index);
-      continue;
-    }
-    if (char === 0x5c) {
-      index += 2;
-      continue;
-    }
-
-    if (char === 0x28 || char === 0x5b || char === 0x7b) {
-      depth++;
-    } else if (char === 0x29 || char === 0x5d || char === 0x7d) {
-      if (depth > 0) depth--;
-    } else if (depth === 0 && (char === 0x3b || (colon && char === 0x3a))) {
-      return index;
-    }
-    index++;
-  }
-
-  return text.length;
-}
-
-/**
- * Returns the index after the string that starts at `start`. An unterminated
- * string runs to the end of the text.
- */
-function skipString(text: string, start: number): number {
-  const end = findStringEnd(text, start);
-  return end === -1 ? text.length : end;
-}
-
-/**
- * Returns the index after the string that starts at `start`, or -1 if it is
- * not terminated.
- */
-function findStringEnd(text: string, start: number): number {
-  const quote = text.charCodeAt(start);
-  let index = start + 1;
-  while (index < text.length) {
-    const char = text.charCodeAt(index);
-    if (char === 0x5c) {
-      index += 2;
-    } else if (char === quote) {
-      return index + 1;
-    } else {
-      index++;
-    }
-  }
-  return -1;
-}
-
 const closingBracket = new Map([
   [0x28, 0x29],
   [0x5b, 0x5d],
@@ -293,36 +145,4 @@ function isComplete(value: string): boolean {
   }
 
   return expected.length === 0;
-}
-
-/**
- * Returns the index after the comment that starts at `start`.
- */
-function skipComment(text: string, start: number): number {
-  const end = text.indexOf("*/", start + 2);
-  return end === -1 ? text.length : end + 2;
-}
-
-function skipSpaceAndComments(text: string, start: number): number {
-  let index = start;
-  for (;;) {
-    while (isSpace(text.charCodeAt(index))) index++;
-    if (
-      text.charCodeAt(index) !== 0x2f ||
-      text.charCodeAt(index + 1) !== 0x2a
-    ) {
-      return index;
-    }
-    index = skipComment(text, index);
-  }
-}
-
-function isSpace(char: number): boolean {
-  return (
-    char === 0x20 ||
-    char === 0x9 ||
-    char === 0xa ||
-    char === 0xd ||
-    char === 0xc
-  );
 }
