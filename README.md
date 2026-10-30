@@ -2,7 +2,7 @@
 
 **som (SVG Object Model)** is a zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects in any JavaScript runtime.
 
-> **Status: early development (0.x).** v0.2 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, and element and attribute data for SVG 1.1 and SVG 2. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
+> **Status: early development (0.x).** v0.3 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, element and attribute data for SVG 1.1 and SVG 2, and finding, normalizing and replacing colors. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
 
 ## Why
 
@@ -41,7 +41,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 | **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4    |
 | **geometry, transforms, optimization** | Bounds, lengths, matrices, cleanup                                    | later   |
 
-v0.1 is released. → v0.2 is released.
+v0.1, v0.2 and v0.3 are released. Later versions show the intended order, not dates.
 
 ## Install
 
@@ -91,6 +91,32 @@ isSvgAttributeName("rect", "rx"); // true
 isSvgAttributeName("rect", "enable-background", "2"); // false: SVG 1.1 only
 
 const name: SvgAttributeName<"rect", "2"> = "paint-order";
+```
+
+Colors are found and replaced where they are written: in attributes, `style` attributes and `<style>` sheets. Colors that look the same match, whatever notation they are written in:
+
+```ts
+import {
+  extractColors,
+  formatColor,
+  normalizeColor,
+  parse,
+  replaceColor,
+} from "@hexlabelposition/som";
+
+const icon = parse(
+  '<svg><style>.a { fill: #F00 }</style><path fill="red" stroke="rgb(0 0 255)"/></svg>',
+);
+
+extractColors(icon).map((use) => use.value); // ["#F00", "red", "rgb(0 0 255)"]
+
+// Distinct colors, in one form:
+const colors = extractColors(icon).flatMap(({ color }) =>
+  color ? [formatColor(normalizeColor(color))] : [],
+);
+new Set(colors); // Set { "#f00", "#00f" }
+
+replaceColor(icon, "red", "currentColor"); // 2
 ```
 
 ## Performance
