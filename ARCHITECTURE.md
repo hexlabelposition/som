@@ -354,6 +354,7 @@ Colors, paint, path data and transforms have their own milestones (v0.3, v0.4, B
 - **Anything that affects test or benchmark results or generated data** - benchmark competitors (svgson, svg-parser), icon sets and spec sources (§11) - is pinned to **exact versions**, so snapshots and benchmark numbers change only when the code changes. Dependabot ignores these packages; they are updated by hand.
 - **`@types/node`** follows the minimum supported Node.js version (§9), so its major updates are ignored by Dependabot and done by hand when the minimum changes.
 - **Docker images** in workflows (actionlint, Playwright) are pinned to digests and updated by hand.
+- **Runners** are pinned to an Ubuntu version, `ubuntu-24.04`, not `ubuntu-latest`, so a new image never changes CI unannounced. It is the version the Playwright image is built on (`noble`), and both are updated together by hand.
 - **Playwright** is pinned to an exact version that matches the `mcr.microsoft.com/playwright` image the browser tests run in. The package, the image digest in `ci.yml` and the one in `scripts/test-webkit.sh` are updated together by hand.
 - The package manager is declared in the `packageManager` field.
 

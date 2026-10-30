@@ -21,7 +21,7 @@ concurrency:
 jobs:
   check:
     name: Lint, format, types, build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,7 +47,7 @@ jobs:
 
   test-node:
     name: Test (Node.js ${{ matrix.node }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -70,7 +70,7 @@ jobs:
 
   test-bun:
     name: Test (Bun ${{ matrix.bun }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -95,7 +95,7 @@ jobs:
 
   test-deno:
     name: Test (Deno)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -115,7 +115,7 @@ jobs:
 
   test-browser:
     name: Test (${{ matrix.browser }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     # The image has the browsers and their system packages preinstalled, so the
     # job does not depend on the Ubuntu apt mirrors. Its version must match the

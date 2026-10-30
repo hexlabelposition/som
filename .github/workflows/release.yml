@@ -10,7 +10,7 @@ permissions: {}
 jobs:
   version:
     name: Check the tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -37,7 +37,7 @@ jobs:
   # third-party actions never run in the job that can publish.
   build:
     name: Build the package
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -70,7 +70,7 @@ jobs:
     environment:
       name: npm
       url: https://www.npmjs.com/package/@hexlabelposition/som
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       # Required to create the GitHub release.
