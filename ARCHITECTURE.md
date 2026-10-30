@@ -28,6 +28,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A20 | Spec types take the SVG version as an optional last parameter; without it, a name is valid if any version defines it (§11)                                    | Accepted |
 | A21 | Typed reads parse by syntax, without the spec data; a missing or invalid value is `undefined`, and units are kept as written (§6)                             | Accepted |
 | A22 | Colors are read and replaced where they are written, in attributes, `style` and `<style>`; selectors, inheritance and `url(#…)` are not resolved (§12)        | Accepted |
+| A23 | Path numbers are kept as exact doubles and written in their shortest form; rounding is never implicit, and absolute coordinates are summed exactly (§13)      | Accepted |
 
 ## 2. Data model
 
@@ -531,3 +532,29 @@ replaceColor(document, "red", "#00f"); // 2
 - **`<style>` elements** are recognized by the unprefixed name `style`, as `getPresentationValue` ignores prefixed elements; color attributes are read on any element (A21). The text is split into rules by `scanStylesheet` in `shared`: at-rules that hold rules (`@media`, `@supports`, `@container`, `@layer`, `@scope`, `@starting-style`, `@document`, `@keyframes`, with or without a vendor prefix) are read recursively, the block of any other at-rule is read as declarations, and nested CSS rules inside a declaration block are skipped. Each text and CDATA child is read on its own, so a rule split by an XML comment is not read.
 - **Corpus.** For every fixture and icon, replacing each color the document has with one it does not have changes exactly the uses `extractColors` reports for it, nothing else moves, and the result still round-trips (§7).
 - **Bundle size** (Bun 1.4 `bun build --minify`): `extractColors` alone is about 11.6 kB minified, 4.6 kB gzipped, `replaceColor` about 13.9 kB and 5.4 kB, most of it `parseColor` with the named color table. A bundle of `parse` alone does not change.
+
+## 13. Paths
+
+The paths module reads, writes and normalizes path data, the value of `d` (v0.4). `parsePath(text)` and `stringifyPath(path)` work on strings (§3, rule 3; B44); normalization converts relative commands to absolute and shorthand commands to full ones (B45). This section records how numbers are kept and how path data is written (B43, A23); the data model and parse errors are decided in B44.
+
+### Numbers
+
+- **Read exactly.** Each number is parsed into the JavaScript number nearest to the text, as `Number()` does, and nothing is rounded: `0.1` is read as the double nearest 0.1. Browsers keep path coordinates as 32-bit floats, so a double keeps more than any renderer uses.
+- **Written in the shortest form that reads back.** `stringifyPath` writes each number as ECMAScript `Number.prototype.toString` does: the shortest decimal that parses to the same double, such as `0.1`, `-3.5`, `1e-7` or `1e+21`. The exponent forms are valid in the SVG 1.1 and SVG 2 path grammars. `-0` is written as `0`, and `NaN` or an infinity throws a `TypeError`, as in `formatColor` (§12). So writing never changes a value, and a path that is read and written again has exactly the numbers it had. Of about 1.55 million numbers in the `d` attributes of the icon corpus, every one is written back with the same value; only the spelling of 3 numbers changes, from `10e-4` to `0.001` and similar.
+- **No implicit rounding.** Rounding loses data, and how much is acceptable depends on the use: 2-3 decimal places are enough for a 24×24 icon, not for a map. A precision is therefore never applied by default. Rounding is an explicit step, done with optimization (B49) or as an option of `stringifyPath` when one is needed (A15, B50).
+- **Exact sums.** Converting a relative command to an absolute one adds coordinates, and reflecting a control point for a shorthand command computes `2 × current − control`. In doubles this shows binary noise, such as `0.1 + 0.2 = 0.30000000000000004`, for about one sum in five of random decimals. B45 removes the noise without rounding away data: a result is rounded to the larger number of decimal places of its operands, counted from their shortest form, which is exactly the decimal result. `M0.1 0 l0.2 0` becomes `M0.1 0 L0.3 0`. Doubling does not add decimal places. B45 tests the sums against integer arithmetic.
+
+### Output format
+
+`stringifyPath` writes one readable form, whichever way the path was written:
+
+```text
+M10,20l5-5 10 0h10 .5Z   →   M10 20 l5 -5 l10 0 h10 h0.5 Z
+```
+
+- **Commands are kept as written.** Absolute and relative letters, shorthand commands (`H`, `V`, `S`, `T`) and the case of `Z` stay as they are; converting them is normalization (B45), as converting color notations is (§12).
+- **Every segment has its letter.** A command letter followed by several sets of arguments is the same command repeated, and numbers after `M` or `m` are an implicit `L` or `l`. Each set is written with its own letter, which is what it means: `M0 0 10 10` is written `M0 0 L10 10`. Repeated letters are a lexical detail, like quote style in XML, so the tree-level round trip (A6) holds: `parsePath(stringifyPath(path))` equals `path` for any path from `parsePath`, and writing it again gives the same text.
+- **One separator.** The letter is followed directly by its first number, numbers are separated by one space, segments by one space, and there is no space at the start or the end: `M10 20 L30 40 A5 5 0 0 1 50 60 Z`. A negative number or one that starts with `.` is still separated by a space, leading zeros are written (`0.5`), and arc flags are written as `0` and `1`. An empty path is `""`.
+- **Compact output is optimization.** The shortest form, without spaces before `-` or `.`, without repeated letters, with joined arc flags (`a5 5 0 01 50 60`), and choosing relative or absolute per segment, saves bytes but is harder to read and to compare in a diff. It belongs to the optimization passes (B49), with rounding.
+
+Most paths in the icon corpus are already close to this form: Tabler Icons writes `M6 8l5 8`, which becomes `M6 8 l5 8`.
