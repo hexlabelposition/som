@@ -143,6 +143,10 @@ som/
 │   │   ├── normalize.ts    #   normalizePath
 │   │   ├── decimal.ts      #   exact decimal sums for normalization
 │   │   └── index.ts
+│   ├── geometry/           # measuring path data (§14)
+│   │   ├── bounds.ts       #   getPathBounds, SvgBounds
+│   │   ├── arc.ts          #   arcs in center parameterization
+│   │   └── index.ts
 │   └── shared/             # helpers used by several modules (XML character rules, CSS tokenizer, number scanner, …), never exported
 ├── test/
 │   ├── api-docs.test.ts    # every public export has TSDoc and a return type
@@ -169,10 +173,10 @@ som/
                 ← stringify
                 ← attributes ← colors
                              ← spec
-          ← paths
+          ← paths ← geometry
    ```
 
-   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6).
+   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6). `geometry` measures path segments, so it uses `paths` and nothing else.
 
    `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21). `colors` also uses `ast` and `shared` directly: the CSS tokenizer that `attributes` uses for `style` lives in `shared`, so `colors` reads `style` attributes and `<style>` sheets with it (§12).
 
@@ -634,3 +638,5 @@ getPathBounds(parsePath("M0 0 C0 -10 10 -10 10 0")!);
 - **Not included:** the stroke, markers and `transform`. A stroke depends on width, joins, caps and the miter limit, and transforms come with v0.6 (B48); bounds of a transformed path are the bounds of the path after the transform is applied (B62), not the transformed box.
 - **The center is the middle of the bounds.** `{ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }`; a function for it would only wrap one line, as for distinct colors (§12).
 - **Numbers are not rounded.** End points come from `normalizePath` and are exact decimals (§13); extremes are computed in doubles and keep their rounding error, about 10⁻¹⁵ of the value. Rounding is left to the caller, as everywhere (A23).
+- **Tests.** Unit tests cover each command and the cases above; property tests compare 500 random paths per run with `getBBox()` in Chromium, Firefox and WebKit to within 0.1% of the path's size, which allows for 32-bit floats and for Firefox drawing arcs as cubic curves; arcs in these paths have radii within a factor of 10, since Chromium is off by 0.1% on thinner ones, where som matches 10⁶ points sampled along the arc. Every path in the corpus has finite bounds that contain the end point of each segment.
+- **Bundle size** (Bun 1.4 `bun build --minify`): `getPathBounds` alone is about 4.0 kB minified, 1.8 kB gzipped, including `normalizePath`.

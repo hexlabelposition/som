@@ -83,7 +83,7 @@ Read, write and normalize path data (`d`).
 Measure path data: bounds, center and length.
 
 - [x] **B58** Decide exact or approximate bounds, how arcs are measured and the result for empty paths
-- [ ] **B47** Bounds and center of path data, tested against browsers
+- [x] **B47** Bounds and center of path data, tested against browsers
 - [ ] **B59** Path length and its precision, tested against browsers
 - [ ] **B60** Release v0.5.0
 
