@@ -30,6 +30,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A22 | Colors are read and replaced where they are written, in attributes, `style` and `<style>`; selectors, inheritance and `url(#…)` are not resolved (§12)        | Accepted |
 | A23 | Path numbers are kept as exact doubles and written in their shortest form; rounding is never implicit, and absolute coordinates are summed exactly (§13)      | Accepted |
 | A24 | Path bounds are exact, as `getBBox()` measures them: curves and arcs up to their extremes, only what is drawn; transforms and stroke are left out (§14)       | Accepted |
+| A25 | Path length is the length of the true curves, to a relative error below 10⁻¹⁰; browsers measure arcs about 0.014% longer (§14)                                | Accepted |
 
 ## 2. Data model
 
@@ -145,7 +146,10 @@ som/
 │   │   └── index.ts
 │   ├── geometry/           # measuring path data (§14)
 │   │   ├── bounds.ts       #   getPathBounds, SvgBounds
+│   │   ├── length.ts       #   getPathLength
 │   │   ├── arc.ts          #   arcs in center parameterization
+│   │   ├── quadrature.ts   #   adaptive Gauss-Legendre quadrature
+│   │   ├── polynomial.ts   #   roots of quadratics and cubics in (0, 1)
 │   │   └── index.ts
 │   └── shared/             # helpers used by several modules (XML character rules, CSS tokenizer, number scanner, …), never exported
 ├── test/
@@ -620,7 +624,7 @@ stringifyPath(normalizePath(parsePath("M10 20 h5 v5 s5 5 10 0 t10 0 z")!));
 
 ## 14. Geometry
 
-The geometry module measures path data (v0.5). It works on path segments, not on elements (§3, rule 3): `getPathBounds(parsePath(d)!)`. This section records how bounds are measured (B58, A24; B47). Path length (B59) follows.
+The geometry module measures path data (v0.5). It works on path segments, not on elements (§3, rule 3): `getPathBounds(parsePath(d)!)`. This section records how bounds are measured (B58, A24; B47) and how length is measured (B59, A25).
 
 ### Bounds
 
@@ -640,3 +644,19 @@ getPathBounds(parsePath("M0 0 C0 -10 10 -10 10 0")!);
 - **Numbers are not rounded.** End points come from `normalizePath` and are exact decimals (§13); extremes are computed in doubles and keep their rounding error, about 10⁻¹⁵ of the value. Rounding is left to the caller, as everywhere (A23).
 - **Tests.** Unit tests cover each command and the cases above; property tests compare 500 random paths per run with `getBBox()` in Chromium, Firefox and WebKit to within 0.1% of the path's size, which allows for 32-bit floats and for Firefox drawing arcs as cubic curves; arcs in these paths have radii within a factor of 10, since Chromium is off by 0.1% on thinner ones, where som matches 10⁶ points sampled along the arc. Every path in the corpus has finite bounds that contain the end point of each segment.
 - **Bundle size** (Bun 1.4 `bun build --minify`): `getPathBounds` alone is about 4.0 kB minified, 1.8 kB gzipped, including `normalizePath`.
+
+### Length
+
+`getPathLength(path)` returns the length of path data, the sum of the lengths of the segments it draws, as `getTotalLength()` measures it:
+
+```ts
+getPathLength(parsePath("M0 0 L3 4 Z")!); // 10
+```
+
+- **The true curves.** Lines and circular arcs are measured exactly. Curves and elliptical arcs have no closed form, so their speed, the length of the derivative, is integrated with an adaptive 8-point Gauss-Legendre rule to a relative error below 10⁻¹⁰; on the cases with a known length, a parabola and an ellipse, the result is within 10⁻¹⁵. Arcs follow SVG as for bounds: radii scaled up when too small, a zero radius as a line, an arc to its start as nothing.
+- **Narrow dips.** Where a curve nearly stops and turns back, its speed dips to almost zero over a tiny parameter range, and the halving quadrature can agree with itself while missing the dip; property tests found such a curve off by 4 × 10⁻⁹. The parameter of the smallest speed is found in closed form for a quadratic curve and as a root of a cubic for a cubic one, and the interval is split around it on a grid that grows by a factor of 4 from the width of the dip. Every interval is then far from the dip on its own scale, and the quadrature converges.
+- **What counts.** A moveto adds nothing, `Z` adds the line back to the start of the subpath, and an empty path or one of movetos only has length 0, as in browsers. The `pathLength` attribute scales dash offsets and does not change the length, as it does not change `getTotalLength()`.
+- **Browsers are less exact.** Chromium and Firefox draw arcs as cubic curves and measure them about 0.014% longer for a circle and up to about 0.04% for a thin ellipse, and measure small curves with a fixed tolerance, such as 2.5 × 10⁻⁵ relative for a curve of length 1.5 in Firefox. Lines are exact in both.
+- **No precision option and no rounding.** The tolerance is fixed: a length is cheap at this precision, so a lower one would not save enough to need an option (A15), and the result is not rounded (A23).
+- **Tests.** Unit tests compare with known lengths and with polylines of 2 × 10⁷ pieces near cusps; property tests compare random paths with polylines of 20,000 pieces per segment, which are shorter than the curve, and 500 random paths per run with `getTotalLength()` in Chromium, Firefox and WebKit to within 0.1%. 30,000 random paths found no further error. In the corpus, every length lies between the polyline through the end points and, for paths without arcs, the control polygons.
+- **Bundle size** (Bun 1.4 `bun build --minify`): `getPathLength` alone is about 5.0 kB minified, 2.3 kB gzipped, including `normalizePath`.
