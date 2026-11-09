@@ -2,7 +2,7 @@
 
 **som (SVG Object Model)** is a zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects in any JavaScript runtime.
 
-> **Status: early development (0.x).** v0.4 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, element and attribute data for SVG 1.1 and SVG 2, finding, normalizing and replacing colors, and parsing, serializing and normalizing path data. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
+> **Status: early development (0.x).** v0.4 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, element and attribute data for SVG 1.1 and SVG 2, finding, normalizing and replacing colors, parsing, serializing and normalizing path data, and the bounds and length of paths. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
 
 ## Why
 
@@ -43,7 +43,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 | **transforms**   | Parse, compose and apply `transform` matrices                         | v0.6    |
 | **optimization** | Rounding, compact path data, document cleanup                         | v0.7    |
 
-v0.1 to v0.4 are released. Later versions show the intended order, not dates.
+v0.1 to v0.5 are released. Later versions show the intended order, not dates.
 
 ## Install
 
@@ -139,6 +139,18 @@ stringifyPath(normalizePath(path!)); // "M10 20 L15 15 L25 15 Z"
 stringifyPath(normalizePath(parsePath("M0.1 0 l0.2 0 h0.4")!)); // "M0.1 0 L0.3 0 L0.7 0"
 
 parsePath("M10 20 L"); // undefined: invalid path data
+```
+
+Paths are measured exactly, curves and arcs included, as `getBBox()` and `getTotalLength()` measure them in browsers:
+
+```ts
+import { getPathBounds, getPathLength, parsePath } from "@hexlabelposition/som";
+
+getPathBounds(parsePath("M0 0 C0 -10 10 -10 10 0")!);
+// { x: 0, y: -7.5, width: 10, height: 7.5 }: the curve, not its control points
+
+getPathLength(parsePath("M0 0 L3 4 Z")!); // 10
+getPathLength(parsePath("M-1 0 A1 1 0 0 1 1 0 A1 1 0 0 1 -1 0")!); // 6.283185307179586, 2π
 ```
 
 ## Performance

@@ -85,7 +85,7 @@ Measure path data: bounds, center and length.
 - [x] **B58** Decide exact or approximate bounds, how arcs are measured and the result for empty paths
 - [x] **B47** Bounds and center of path data, tested against browsers
 - [x] **B59** Path length and its precision, tested against browsers
-- [ ] **B60** Release v0.5.0
+- [x] **B60** Release v0.5.0
 
 ## v0.6 - Transforms
 
