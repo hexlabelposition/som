@@ -29,6 +29,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A21 | Typed reads parse by syntax, without the spec data; a missing or invalid value is `undefined`, and units are kept as written (§6)                             | Accepted |
 | A22 | Colors are read and replaced where they are written, in attributes, `style` and `<style>`; selectors, inheritance and `url(#…)` are not resolved (§12)        | Accepted |
 | A23 | Path numbers are kept as exact doubles and written in their shortest form; rounding is never implicit, and absolute coordinates are summed exactly (§13)      | Accepted |
+| A24 | Path bounds are exact, as `getBBox()` measures them: curves and arcs up to their extremes, only what is drawn; transforms and stroke are left out (§14)       | Accepted |
 
 ## 2. Data model
 
@@ -612,3 +613,24 @@ stringifyPath(normalizePath(parsePath("M10 20 h5 v5 s5 5 10 0 t10 0 z")!));
 - **Idempotent and new.** A normalized path normalizes to itself, and the result is a new array of new segments. The first segment must be `M` or `m` and every type known, or a `TypeError` is thrown, as in `stringifyPath`. Every path in the corpus normalizes, and the result reads back from `stringifyPath` unchanged.
 - **Values only, for now.** `normalizePath` works on segments (§3, rule 3). Normalizing every `d` in a document is `parsePath`, `normalizePath` and `stringifyPath` over the elements; a helper for that can come with the optimization passes (B49).
 - **Bundle size** (Bun 1.4 `bun build --minify`): `normalizePath` alone is about 1.6 kB minified, 0.7 kB gzipped.
+
+## 14. Geometry
+
+The geometry module measures path data (v0.5). It works on path segments, not on elements (§3, rule 3): `getPathBounds(parsePath(d)!)`. This section records how bounds are measured (B58, A24; B47). Path length (B59) follows.
+
+### Bounds
+
+`getPathBounds(path)` returns an `SvgBounds`, `{ x, y, width, height }` like `SvgViewBox` (§6), or `undefined` for an empty path:
+
+```ts
+getPathBounds(parsePath("M0 0 C0 -10 10 -10 10 0")!);
+// { x: 0, y: -7.5, width: 10, height: 7.5 }
+```
+
+- **Exact, not the control points.** A curve counts up to the points where it turns on each axis, the roots of its derivative, and an arc up to the extremes of its ellipse that lie on it. This is what `getBBox()` returns in browsers, and what layout needs; the box of the control points is larger for most curves.
+- **Arcs as SVG draws them.** An arc is converted to its center form as SVG 2 appendix B.2.4 defines it: negative radii are used as positive, radii too small to reach the end point are scaled up, and an arc with a zero radius is a straight line. An extreme counts only strictly inside the arc, since an end point is already known exactly.
+- **Only what is drawn.** A moveto that no command follows draws nothing and is left out; a path that draws nothing, such as `M10 20`, has zero-size bounds at its last point, as in browsers. Segments of zero length count: the path passes through their point.
+- **Browsers differ on degenerate paths.** In Chromium and Firefox, `getBBox()` leaves a moveto at the end of a path out of a path of lines but counts it in a path with curves, and counts segments of zero length in Chromium for lines only and in Firefox not at all. som follows the geometry rather than these engine details, and the browser tests leave such paths out.
+- **Not included:** the stroke, markers and `transform`. A stroke depends on width, joins, caps and the miter limit, and transforms come with v0.6 (B48); bounds of a transformed path are the bounds of the path after the transform is applied (B62), not the transformed box.
+- **The center is the middle of the bounds.** `{ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }`; a function for it would only wrap one line, as for distinct colors (§12).
+- **Numbers are not rounded.** End points come from `normalizePath` and are exact decimals (§13); extremes are computed in doubles and keep their rounding error, about 10⁻¹⁵ of the value. Rounding is left to the caller, as everywhere (A23).
