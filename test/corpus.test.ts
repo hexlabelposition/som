@@ -7,6 +7,7 @@ import {
   extractColors,
   findAll,
   formatColor,
+  getPathBounds,
   isElement,
   normalizeColor,
   normalizePath,
@@ -17,6 +18,7 @@ import {
   stringifyPath,
   type SvgColor,
   type SvgColorUse,
+  type SvgPathSegment,
 } from "../src";
 
 // Corpus check from ARCHITECTURE §7: every fixture and every icon parses,
@@ -25,7 +27,8 @@ import {
 // on the same files: every color extractColors reports, replaceColor changes
 // in the place it reports it. So does the paths check (§13): every `d`
 // attribute parses, reads back from stringifyPath unchanged, and is written
-// the same way again, and its normalized form reads back unchanged too.
+// the same way again, and its normalized form reads back unchanged too. Its
+// bounds (§14) are finite and contain the end point of every segment.
 
 const fixtures = fileURLToPath(new URL("fixtures/", import.meta.url));
 const modules = fileURLToPath(new URL("../node_modules/", import.meta.url));
@@ -123,9 +126,34 @@ function checkColors(input: string): string | undefined {
 }
 
 /**
+ * Returns what is wrong with the bounds of a path, or `undefined` if they are
+ * finite and contain the end point of every segment.
+ */
+function checkBounds(path: SvgPathSegment[]): string | undefined {
+  const bounds = getPathBounds(path);
+  if (bounds === undefined) return path.length > 0 ? "no bounds" : undefined;
+  const { x, y, width, height } = bounds;
+  if (![x, y, width, height].every(Number.isFinite)) return "infinite bounds";
+  // Normalized segments have absolute end points; Z ends at a known point.
+  for (const segment of normalizePath(path)) {
+    if (segment.type === "Z" || segment.type === "M") continue;
+    if (
+      segment.x < x ||
+      segment.y < y ||
+      segment.x > x + width + 1e-9 * Math.abs(x + width) ||
+      segment.y > y + height + 1e-9 * Math.abs(y + height)
+    ) {
+      return "bounds leave out an end point";
+    }
+  }
+  return undefined;
+}
+
+/**
  * Returns a description of the first failed paths check, or `undefined` when
  * every `d` attribute parses, round-trips through stringifyPath and is
- * written the same way again, and so does its normalized form.
+ * written the same way again, and so does its normalized form, and its
+ * bounds contain every end point.
  */
 function checkPaths(input: string): string | undefined {
   try {
@@ -142,6 +170,8 @@ function checkPaths(input: string): string | undefined {
       }
       // Numbers are written without loss, so comparing the text is
       // comparing the segments, and much faster.
+      const failure = checkBounds(path);
+      if (failure !== undefined) return `${failure}: ${d.slice(0, 40)}`;
       const normalized = stringifyPath(normalizePath(path));
       const again = normalizePath(parsePath(normalized) ?? []);
       if (stringifyPath(again) !== normalized) {
