@@ -1,6 +1,6 @@
 # Backlog
 
-Milestones in the order they are planned. Not tied to dates. A1-A17 refer to decisions in [ARCHITECTURE.md](./ARCHITECTURE.md).
+Milestones in the order they are planned. Not tied to dates. A-numbers refer to decisions in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 Items are numbered so early commits can point to them, for example `feat(parse): strict parsing (B18)`. Numbers are not reused.
 
@@ -21,6 +21,7 @@ An empty project that builds, lints and tests.
 - [x] **B11** Dependabot for npm tooling: one grouped PR, weekly, 7-day cooldown, TypeScript minor/major ignored (A13)
 - [x] **B12** `build`, `lint`, `format:check`, `docs:check`, `typecheck` and `test` pass locally and in CI
 - [x] **B9** Release workflow on `vX.Y.Z` tags: version check, CI, build without publishing permissions, `npm stage publish` with trusted publishing (OIDC, provenance), GitHub release with generated notes
+- [x] **B52** Deno in CI: the `node` test project runs on Deno
 
 ## v0.1 - parse, stringify, ast, attributes
 
@@ -77,14 +78,41 @@ Read, write and normalize path data (`d`).
 - [x] **B45** Normalize: relative → absolute, shorthand → full commands
 - [x] **B46** Release v0.4.0
 
-## Later
+## v0.5 - Geometry
 
-- [ ] **B47** Geometry: bounds, center, path length
-- [ ] **B48** Transforms: parse and compose matrices, apply to paths
-- [ ] **B49** Optimization passes
-- [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
+Measure path data: bounds, center and length.
+
+- [ ] **B58** Decide exact or approximate bounds, how arcs are measured, the precision of lengths and the result for empty paths
+- [ ] **B47** Bounds and center of path data, tested against browsers
+- [ ] **B59** Path length, tested against browsers
+- [ ] **B60** Release v0.5.0
+
+## v0.6 - Transforms
+
+Read, compose and apply `transform`.
+
+- [ ] **B61** Decide the matrix model, the `transform` grammar (SVG 1.1 and CSS transforms) and how arcs are transformed
+- [ ] **B48** Parse, compose and write transforms as matrices
+- [ ] **B62** Apply a matrix to path data
+- [ ] **B63** Release v0.6.0
+
+## v0.7 - Optimization
+
+Make documents and path data smaller without changing how they render.
+
+- [ ] **B64** Decide which passes exist, what counts as safe and how precision is chosen
+- [ ] **B49** Path data: rounding and compact output (ARCHITECTURE §13)
+- [ ] **B65** Document passes, compared with SVGO on the corpus
+- [ ] **B66** Release v0.7.0
+
+## v1.0 - Stable API
+
+Settle the API before it is frozen.
+
 - [ ] **B57** Namespace export like zod's `z`: `import { s } from "@hexlabelposition/som"` (A19, ARCHITECTURE §4); decide named exports, types and the name, and check tree-shaking first
-- [x] **B52** Deno in CI: the `node` test project runs on Deno
+- [ ] **B50** Options, only when really needed (A15): trim whitespace, source positions, custom limits, pretty print
+- [ ] **B67** Review the API and the open questions below before the freeze
+- [ ] **B68** Release v1.0.0
 
 ## Open questions
 

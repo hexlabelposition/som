@@ -29,17 +29,19 @@ som aims to replace them with one coherent toolkit built around a single documen
 
 ## Features
 
-| Area                                   | What it covers                                                        | Version |
-| -------------------------------------- | --------------------------------------------------------------------- | ------- |
-| **parse**                              | Parse SVG into an AST                                                 | v0.1    |
-| **stringify**                          | Serialize an AST back to SVG                                          | v0.1    |
-| **ast**                                | `clone`, traversal, queries, type guards                              | v0.1    |
-| **attributes**                         | Helpers for the `style` and `class` attributes                        | v0.1    |
-| **typed reads**                        | Numbers, lengths, angles, `viewBox` and other attribute values        | v0.2    |
-| **spec types**                         | Element and attribute types per SVG version, generated from the specs | v0.2    |
-| **colors**                             | Extract, normalize and replace colors                                 | v0.3    |
-| **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4    |
-| **geometry, transforms, optimization** | Bounds, lengths, matrices, cleanup                                    | later   |
+| Area             | What it covers                                                        | Version |
+| ---------------- | --------------------------------------------------------------------- | ------- |
+| **parse**        | Parse SVG into an AST                                                 | v0.1    |
+| **stringify**    | Serialize an AST back to SVG                                          | v0.1    |
+| **ast**          | `clone`, traversal, queries, type guards                              | v0.1    |
+| **attributes**   | Helpers for the `style` and `class` attributes                        | v0.1    |
+| **typed reads**  | Numbers, lengths, angles, `viewBox` and other attribute values        | v0.2    |
+| **spec types**   | Element and attribute types per SVG version, generated from the specs | v0.2    |
+| **colors**       | Extract, normalize and replace colors                                 | v0.3    |
+| **paths**        | Parse, serialize and normalize path data (`d`)                        | v0.4    |
+| **geometry**     | Bounds, center and length of path data                                | v0.5    |
+| **transforms**   | Parse, compose and apply `transform` matrices                         | v0.6    |
+| **optimization** | Rounding, compact path data, document cleanup                         | v0.7    |
 
 v0.1 to v0.4 are released. Later versions show the intended order, not dates.
 
