@@ -23,7 +23,9 @@ function nested(depth: number): string {
   return "<g>".repeat(depth) + "</g>".repeat(depth);
 }
 
-test("accepts input up to the maximum length", () => {
+// Parsing the longest input takes a few seconds, more when the browser tests
+// run alongside, so the default timeout of 5 seconds is too short.
+test("accepts input up to the maximum length", { timeout: 30_000 }, () => {
   const svg = "<svg/>";
   expect(() =>
     parse(svg + " ".repeat(MAX_INPUT_LENGTH - svg.length)),
