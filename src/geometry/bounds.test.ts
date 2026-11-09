@@ -268,9 +268,10 @@ describe.skipIf(document === undefined)("getPathBounds in a browser", () => {
           const expected = element.getBBox();
           const actual = getPathBounds(segments);
           if (actual === undefined) throw new Error("No bounds");
-          // Browsers keep paths in 32-bit floats, and Firefox draws arcs
-          // as cubic curves, which bulge by up to 0.03% of the radius.
-          const tolerance = 1e-3 * size(actual);
+          // Browsers keep paths in 32-bit floats and draw arcs as cubic
+          // curves; Chromium is off by up to about 0.1% of the size on thin
+          // ellipses. A missed extreme is off by far more.
+          const tolerance = 5e-3 * size(actual);
           for (const key of ["x", "y", "width", "height"] as const) {
             expect(
               Math.abs(actual[key] - expected[key]),
