@@ -2,7 +2,7 @@
 
 **som (SVG Object Model)** is a zero-dependency, tree-shakeable ESM toolkit for working with SVG as plain objects in any JavaScript runtime.
 
-> **Status: early development (0.x).** v0.3 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, element and attribute data for SVG 1.1 and SVG 2, and finding, normalizing and replacing colors. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
+> **Status: early development (0.x).** v0.4 covers parsing, serialization, tree helpers, the `style` and `class` attributes, typed attribute reads, element and attribute data for SVG 1.1 and SVG 2, finding, normalizing and replacing colors, and parsing, serializing and normalizing path data. Until 1.0, any minor release may change the API. See [BACKLOG.md](./BACKLOG.md) for what is planned and [ARCHITECTURE.md](./ARCHITECTURE.md) for how it is built.
 
 ## Why
 
@@ -41,7 +41,7 @@ som aims to replace them with one coherent toolkit built around a single documen
 | **paths**                              | Parse, serialize and normalize path data (`d`)                        | v0.4    |
 | **geometry, transforms, optimization** | Bounds, lengths, matrices, cleanup                                    | later   |
 
-v0.1, v0.2 and v0.3 are released. Later versions show the intended order, not dates.
+v0.1 to v0.4 are released. Later versions show the intended order, not dates.
 
 ## Install
 
@@ -117,6 +117,26 @@ const colors = extractColors(icon).flatMap(({ color }) =>
 new Set(colors); // Set { "#f00", "#00f" }
 
 replaceColor(icon, "red", "currentColor"); // 2
+```
+
+Path data is read into one plain object per command, written back in one readable form, and normalized to absolute full commands. Numbers are kept exactly; relative coordinates are summed as decimals, so `0.1 + 0.2` stays `0.3`:
+
+```ts
+import { normalizePath, parsePath, stringifyPath } from "@hexlabelposition/som";
+
+const path = parsePath("M10,20l5-5 10 0Z");
+// [
+//   { type: "M", x: 10, y: 20 },
+//   { type: "l", x: 5, y: -5 },
+//   { type: "l", x: 10, y: 0 },
+//   { type: "Z" },
+// ]
+
+stringifyPath(path!); // "M10 20 l5 -5 l10 0 Z"
+stringifyPath(normalizePath(path!)); // "M10 20 L15 15 L25 15 Z"
+stringifyPath(normalizePath(parsePath("M0.1 0 l0.2 0 h0.4")!)); // "M0.1 0 L0.3 0 L0.7 0"
+
+parsePath("M10 20 L"); // undefined: invalid path data
 ```
 
 ## Performance
