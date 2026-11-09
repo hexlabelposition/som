@@ -74,7 +74,7 @@ Read, write and normalize path data (`d`).
 
 - [x] **B43** Decide numeric precision and output format
 - [x] **B44** `parsePath`, `stringifyPath`; every corpus path round-trips
-- [ ] **B45** Normalize: relative → absolute, shorthand → full commands
+- [x] **B45** Normalize: relative → absolute, shorthand → full commands
 - [ ] **B46** Release v0.4.0
 
 ## Later

@@ -175,3 +175,26 @@ export type SvgPathSegment =
   | SvgSmoothQuadraticCurveTo
   | SvgArcTo
   | SvgClosePath;
+
+/**
+ * One command of normalized path data, as `normalizePath` returns it: an
+ * absolute command that is not a shorthand. `H` and `V` become `L`, `S`
+ * becomes `C`, `T` becomes `Q`, and `z` is written `Z`.
+ *
+ * @example
+ * ```ts
+ * // d="M10 20 H30 Z"
+ * const path: SvgNormalizedPathSegment[] = [
+ *   { type: "M", x: 10, y: 20 },
+ *   { type: "L", x: 30, y: 20 },
+ *   { type: "Z" },
+ * ];
+ * ```
+ */
+export type SvgNormalizedPathSegment =
+  | (SvgMoveTo & { type: "M" })
+  | (SvgLineTo & { type: "L" })
+  | (SvgCubicCurveTo & { type: "C" })
+  | (SvgQuadraticCurveTo & { type: "Q" })
+  | (SvgArcTo & { type: "A" })
+  | (SvgClosePath & { type: "Z" });

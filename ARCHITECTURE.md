@@ -139,6 +139,8 @@ som/
 │   │   ├── types.ts        #   SvgPathSegment and one type per command
 │   │   ├── parse.ts        #   parsePath
 │   │   ├── stringify.ts    #   stringifyPath
+│   │   ├── normalize.ts    #   normalizePath
+│   │   ├── decimal.ts      #   exact decimal sums for normalization
 │   │   └── index.ts
 │   └── shared/             # helpers used by several modules (XML character rules, CSS tokenizer, number scanner, …), never exported
 ├── test/
@@ -543,7 +545,7 @@ replaceColor(document, "red", "#00f"); // 2
 
 ## 13. Paths
 
-The paths module reads, writes and normalizes path data, the value of `d` (v0.4). `parsePath(text)` and `stringifyPath(path)` work on strings (§3, rule 3; B44); normalization converts relative commands to absolute and shorthand commands to full ones (B45). This section records the data model and parsing (B44), how numbers are kept and how path data is written (B43, A23).
+The paths module reads, writes and normalizes path data, the value of `d` (v0.4). `parsePath(text)` and `stringifyPath(path)` work on strings (§3, rule 3; B44); normalization converts relative commands to absolute and shorthand commands to full ones (B45). This section records the data model and parsing (B44), how numbers are kept and how path data is written (B43, A23), and normalization (B45).
 
 ### Data model
 
@@ -578,7 +580,7 @@ parsePath("M10,20l5-5 10 0a5 5 0 015 5Z");
 - **Read exactly.** Each number is parsed into the JavaScript number nearest to the text, as `Number()` does, and nothing is rounded: `0.1` is read as the double nearest 0.1. Browsers keep path coordinates as 32-bit floats, so a double keeps more than any renderer uses.
 - **Written in the shortest form that reads back.** `stringifyPath` writes each number as ECMAScript `Number.prototype.toString` does: the shortest decimal that parses to the same double, such as `0.1`, `-3.5`, `1e-7` or `1e+21`. The exponent forms are valid in the SVG 1.1 and SVG 2 path grammars. `-0` is written as `0`, and `NaN` or an infinity throws a `TypeError`, as in `formatColor` (§12). So writing never changes a value, and a path that is read and written again has exactly the numbers it had. Of about 1.55 million numbers in the `d` attributes of the icon corpus, every one is written back with the same value; only the spelling of 3 numbers changes, from `10e-4` to `0.001` and similar.
 - **No implicit rounding.** Rounding loses data, and how much is acceptable depends on the use: 2-3 decimal places are enough for a 24×24 icon, not for a map. A precision is therefore never applied by default. Rounding is an explicit step, done with optimization (B49) or as an option of `stringifyPath` when one is needed (A15, B50).
-- **Exact sums.** Converting a relative command to an absolute one adds coordinates, and reflecting a control point for a shorthand command computes `2 × current − control`. In doubles this shows binary noise, such as `0.1 + 0.2 = 0.30000000000000004`, for about one sum in five of random decimals. B45 removes the noise without rounding away data: a result is rounded to the larger number of decimal places of its operands, counted from their shortest form, which is exactly the decimal result. `M0.1 0 l0.2 0` becomes `M0.1 0 L0.3 0`. Doubling does not add decimal places. B45 tests the sums against integer arithmetic.
+- **Exact sums.** Converting a relative command to an absolute one adds coordinates, and reflecting a control point for a shorthand command computes `2 × current − control`. In doubles this shows binary noise, such as `0.1 + 0.2 = 0.30000000000000004`, for about one sum in five of random decimals. Normalization removes the noise without rounding away data: a result is rounded to the larger number of decimal places of its operands, counted from their shortest form, which is exactly the decimal result. `M0.1 0 l0.2 0` becomes `M0.1 0 L0.3 0`. Doubling does not add decimal places. The tests check the sums against integer arithmetic.
 
 ### Output format
 
@@ -594,3 +596,19 @@ M10,20l5-5 10 0h10 .5Z   →   M10 20 l5 -5 l10 0 h10 h0.5 Z
 - **Compact output is optimization.** The shortest form, without spaces before `-` or `.`, without repeated letters, with joined arc flags (`a5 5 0 01 50 60`), and choosing relative or absolute per segment, saves bytes but is harder to read and to compare in a diff. It belongs to the optimization passes (B49), with rounding.
 
 Most paths in the icon corpus are already close to this form: Tabler Icons writes `M6 8l5 8`, which becomes `M6 8 l5 8`. Over the whole corpus the output is about 25% longer than the input, mostly from the separators and repeated letters that minified icons such as Simple Icons leave out.
+
+### Normalization
+
+`normalizePath(path)` converts segments to one form, so that paths drawn the same way are written the same way (B45), as `normalizeColor` does for colors (§12):
+
+```ts
+stringifyPath(normalizePath(parsePath("M10 20 h5 v5 s5 5 10 0 t10 0 z")!));
+// "M10 20 L15 20 L15 25 C15 25 20 30 25 25 Q25 25 35 25 Z"
+```
+
+- **Absolute full commands only.** The result has `M`, `L`, `C`, `Q`, `A` and `Z`, typed as `SvgNormalizedPathSegment`. Relative commands are made absolute from the current point; a first `m` starts at the origin, and after `Z` the current point is the start of the subpath. `H` and `V` become `L`; `S` and `T` become `C` and `Q` with the control point reflected from the previous `C` or `S`, or `Q` or `T`, and the current point after any other command, as SVG defines it. `z` is written `Z`.
+- **Arcs are kept as arcs.** Radii, rotation and flags stay as written, including a negative radius or a zero one, which draws a line. Converting arcs to curves changes the geometry and is not normalization.
+- **Numbers.** Absolute numbers are copied as they are, and computed ones are exact decimal sums (see Numbers): over the corpus, plain double sums show noise in 8,954 of the 35,317 paths, and the exact sums differ from them by at most 5 × 10⁻¹⁴ of the value. Numbers are not checked; `stringifyPath` throws for one that is not finite.
+- **Idempotent and new.** A normalized path normalizes to itself, and the result is a new array of new segments. The first segment must be `M` or `m` and every type known, or a `TypeError` is thrown, as in `stringifyPath`. Every path in the corpus normalizes, and the result reads back from `stringifyPath` unchanged.
+- **Values only, for now.** `normalizePath` works on segments (§3, rule 3). Normalizing every `d` in a document is `parsePath`, `normalizePath` and `stringifyPath` over the elements; a helper for that can come with the optimization passes (B49).
+- **Bundle size** (Bun 1.4 `bun build --minify`): `normalizePath` alone is about 1.6 kB minified, 0.7 kB gzipped.

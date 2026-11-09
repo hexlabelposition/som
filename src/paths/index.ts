@@ -1,3 +1,4 @@
+export { normalizePath } from "./normalize";
 export { parsePath } from "./parse";
 export { stringifyPath } from "./stringify";
 export type {
@@ -7,6 +8,7 @@ export type {
   SvgHorizontalLineTo,
   SvgLineTo,
   SvgMoveTo,
+  SvgNormalizedPathSegment,
   SvgPathSegment,
   SvgQuadraticCurveTo,
   SvgSmoothCubicCurveTo,
