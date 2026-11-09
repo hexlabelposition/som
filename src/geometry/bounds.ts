@@ -1,5 +1,6 @@
 import { normalizePath, type SvgPathSegment } from "../paths";
 import { arcPoint, insideArc, toCenterArc } from "./arc";
+import { quadraticRoots } from "./polynomial";
 
 /**
  * A rectangle aligned with the axes, such as the bounds of a path.
@@ -51,23 +52,6 @@ class Extent {
 }
 
 /**
- * Returns the parameters in (0, 1) where `a t² + b t + c` is zero, in a form
- * that stays accurate when `a` is close to zero.
- */
-function roots(a: number, b: number, c: number): number[] {
-  let found: number[];
-  if (a === 0) {
-    found = b === 0 ? [] : [-c / b];
-  } else {
-    const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) return [];
-    const q = -(b + (b < 0 ? -1 : 1) * Math.sqrt(discriminant)) / 2;
-    found = q === 0 ? [0] : [q / a, c / q];
-  }
-  return found.filter((t) => t > 0 && t < 1);
-}
-
-/**
  * The value of a cubic Bézier curve at `t` on one axis.
  */
 function cubicAt(p0: number, p1: number, p2: number, p3: number, t: number) {
@@ -82,7 +66,7 @@ function cubicAt(p0: number, p1: number, p2: number, p3: number, t: number) {
  * the roots of its derivative divided by 3.
  */
 const cubicExtremes = (p0: number, p1: number, p2: number, p3: number) =>
-  roots(-p0 + 3 * p1 - 3 * p2 + p3, 2 * (p0 - 2 * p1 + p2), p1 - p0);
+  quadraticRoots(-p0 + 3 * p1 - 3 * p2 + p3, 2 * (p0 - 2 * p1 + p2), p1 - p0);
 
 /**
  * The value of a quadratic Bézier curve at `t` on one axis.
