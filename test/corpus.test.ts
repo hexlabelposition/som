@@ -8,6 +8,7 @@ import {
   findAll,
   formatColor,
   getPathBounds,
+  getPathLength,
   isElement,
   normalizeColor,
   normalizePath,
@@ -28,7 +29,9 @@ import {
 // in the place it reports it. So does the paths check (§13): every `d`
 // attribute parses, reads back from stringifyPath unchanged, and is written
 // the same way again, and its normalized form reads back unchanged too. Its
-// bounds (§14) are finite and contain the end point of every segment.
+// bounds (§14) are finite and contain the end point of every segment, and
+// its length lies between the polyline through the end points and the
+// control polygons.
 
 const fixtures = fileURLToPath(new URL("fixtures/", import.meta.url));
 const modules = fileURLToPath(new URL("../node_modules/", import.meta.url));
@@ -150,6 +153,55 @@ function checkBounds(path: SvgPathSegment[]): string | undefined {
 }
 
 /**
+ * Returns what is wrong with the length of a path, or `undefined` if it is at
+ * least the polyline through the end points of its segments and, for a path
+ * without arcs, at most the polyline through all its control points.
+ */
+function checkLength(path: SvgPathSegment[]): string | undefined {
+  const length = getPathLength(path);
+  let chords = 0;
+  let polygon = 0;
+  let arcs = false;
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  for (const segment of normalizePath(path)) {
+    if (segment.type === "M") {
+      x = startX = segment.x;
+      y = startY = segment.y;
+      continue;
+    }
+    const end = segment.type === "Z" ? { x: startX, y: startY } : segment;
+    const points =
+      segment.type === "C"
+        ? [
+            { x: segment.x1, y: segment.y1 },
+            { x: segment.x2, y: segment.y2 },
+          ]
+        : segment.type === "Q"
+          ? [{ x: segment.x1, y: segment.y1 }]
+          : [];
+    if (segment.type === "A") arcs = true;
+    chords += Math.hypot(end.x - x, end.y - y);
+    let previous = { x, y };
+    for (const point of [...points, end]) {
+      polygon += Math.hypot(point.x - previous.x, point.y - previous.y);
+      previous = point;
+    }
+    x = end.x;
+    y = end.y;
+  }
+  const slack = 1e-9 * Math.max(1, length);
+  if (!Number.isFinite(length)) return "infinite length";
+  if (length < chords - slack) return "length shorter than the chords";
+  if (!arcs && length > polygon + slack) {
+    return "length longer than the control polygon";
+  }
+  return undefined;
+}
+
+/**
  * Returns a description of the first failed paths check, or `undefined` when
  * every `d` attribute parses, round-trips through stringifyPath and is
  * written the same way again, and so does its normalized form, and its
@@ -170,7 +222,7 @@ function checkPaths(input: string): string | undefined {
       }
       // Numbers are written without loss, so comparing the text is
       // comparing the segments, and much faster.
-      const failure = checkBounds(path);
+      const failure = checkBounds(path) ?? checkLength(path);
       if (failure !== undefined) return `${failure}: ${d.slice(0, 40)}`;
       const normalized = stringifyPath(normalizePath(path));
       const again = normalizePath(parsePath(normalized) ?? []);
