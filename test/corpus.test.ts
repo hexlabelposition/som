@@ -9,6 +9,7 @@ import {
   formatColor,
   isElement,
   normalizeColor,
+  normalizePath,
   parse,
   parsePath,
   replaceColor,
@@ -24,7 +25,7 @@ import {
 // on the same files: every color extractColors reports, replaceColor changes
 // in the place it reports it. So does the paths check (§13): every `d`
 // attribute parses, reads back from stringifyPath unchanged, and is written
-// the same way again.
+// the same way again, and its normalized form reads back unchanged too.
 
 const fixtures = fileURLToPath(new URL("fixtures/", import.meta.url));
 const modules = fileURLToPath(new URL("../node_modules/", import.meta.url));
@@ -124,7 +125,7 @@ function checkColors(input: string): string | undefined {
 /**
  * Returns a description of the first failed paths check, or `undefined` when
  * every `d` attribute parses, round-trips through stringifyPath and is
- * written the same way again.
+ * written the same way again, and so does its normalized form.
  */
 function checkPaths(input: string): string | undefined {
   try {
@@ -138,6 +139,13 @@ function checkPaths(input: string): string | undefined {
       expect(parsePath(output)).toEqual(path);
       if (stringifyPath(parsePath(output) ?? []) !== output) {
         return `path output is not stable: ${output.slice(0, 40)}`;
+      }
+      // Numbers are written without loss, so comparing the text is
+      // comparing the segments, and much faster.
+      const normalized = stringifyPath(normalizePath(path));
+      const again = normalizePath(parsePath(normalized) ?? []);
+      if (stringifyPath(again) !== normalized) {
+        return `normalized path is not stable: ${normalized.slice(0, 40)}`;
       }
     }
   } catch (error) {
@@ -166,7 +174,9 @@ describe("fixtures", () => {
 
 describe("icon sets", () => {
   // One test per set: thousands of separate tests would mostly add noise.
-  test.each(iconCorpora)("%s", (corpus) => {
+  // A set takes a few seconds, more when the browser tests run alongside,
+  // so the default timeout of 5 seconds is too short.
+  test.each(iconCorpora)("%s", { timeout: 30_000 }, (corpus) => {
     const directory = join(modules, corpus);
     const files = svgFiles(directory);
     expect(files.length).toBeGreaterThan(100);
