@@ -9,14 +9,17 @@ import {
   formatColor,
   getPathBounds,
   getPathLength,
+  getTransformMatrix,
   isElement,
   normalizeColor,
   normalizePath,
   parse,
   parsePath,
+  parseTransform,
   replaceColor,
   stringify,
   stringifyPath,
+  stringifyTransform,
   type SvgColor,
   type SvgColorUse,
   type SvgPathSegment,
@@ -31,7 +34,8 @@ import {
 // the same way again, and its normalized form reads back unchanged too. Its
 // bounds (§14) are finite and contain the end point of every segment, and
 // its length lies between the polyline through the end points and the
-// control polygons.
+// control polygons. Every transform list (§15) parses, reads back from
+// stringifyTransform unchanged and has a finite matrix.
 
 const fixtures = fileURLToPath(new URL("fixtures/", import.meta.url));
 const modules = fileURLToPath(new URL("../node_modules/", import.meta.url));
@@ -236,6 +240,46 @@ function checkPaths(input: string): string | undefined {
   return undefined;
 }
 
+/**
+ * The attributes whose value is a transform list.
+ */
+const transformAttributes = [
+  "transform",
+  "gradientTransform",
+  "patternTransform",
+];
+
+/**
+ * Returns a description of the first failed transforms check, or `undefined`
+ * when every transform list parses, reads back from stringifyTransform
+ * unchanged, is written the same way again and has a finite matrix.
+ */
+function checkTransforms(input: string): string | undefined {
+  try {
+    const elements = findAll(parse(input), isElement);
+    for (const { attributes } of elements) {
+      for (const name of transformAttributes) {
+        const value = attributes[name];
+        if (value === undefined) continue;
+        const functions = parseTransform(value);
+        if (functions === undefined) return `invalid ${name}: ${value}`;
+        const output = stringifyTransform(functions);
+        expect(parseTransform(output)).toEqual(functions);
+        if (stringifyTransform(parseTransform(output) ?? []) !== output) {
+          return `transform output is not stable: ${output}`;
+        }
+        const matrix = getTransformMatrix(functions);
+        if (!Object.values(matrix).every(Number.isFinite)) {
+          return `infinite matrix: ${value}`;
+        }
+      }
+    }
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  return undefined;
+}
+
 describe("fixtures", () => {
   describe.each(fixtureCorpora)("%s", (corpus) => {
     const directory = join(fixtures, corpus);
@@ -247,9 +291,12 @@ describe("fixtures", () => {
 
     test.each(files)("%s", (file) => {
       const input = readFileSync(join(directory, file), "utf8");
-      expect(check(input) ?? checkColors(input) ?? checkPaths(input)).toBe(
-        undefined,
-      );
+      expect(
+        check(input) ??
+          checkColors(input) ??
+          checkPaths(input) ??
+          checkTransforms(input),
+      ).toBe(undefined);
     });
   });
 });
@@ -266,7 +313,11 @@ describe("icon sets", () => {
     const failures: string[] = [];
     for (const file of files) {
       const input = readFileSync(join(directory, file), "utf8");
-      const failure = check(input) ?? checkColors(input) ?? checkPaths(input);
+      const failure =
+        check(input) ??
+        checkColors(input) ??
+        checkPaths(input) ??
+        checkTransforms(input);
       if (failure !== undefined) failures.push(`${file}: ${failure}`);
     }
     expect(failures).toEqual([]);
