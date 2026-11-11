@@ -31,6 +31,8 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A23 | Path numbers are kept as exact doubles and written in their shortest form; rounding is never implicit, and absolute coordinates are summed exactly (§13)      | Accepted |
 | A24 | Path bounds are exact, as `getBBox()` measures them: curves and arcs up to their extremes, only what is drawn; transforms and stroke are left out (§14)       | Accepted |
 | A25 | Path length is the length of the true curves, to a relative error below 10⁻¹⁰; browsers measure arcs about 0.014% longer (§14)                                | Accepted |
+| A26 | Transforms are 2D matrices `{ a, b, c, d, e, f }`, read in the SVG 2 syntax (SVG 1.1 with CSS Transforms 1); units are kept as written (§15)                  | Accepted |
+| A27 | A matrix applied to path data maps arcs to arcs exactly, `sweep` flipped by a reflection; the result is normalized (§15)                                      | Accepted |
 
 ## 2. Data model
 
@@ -660,3 +662,92 @@ getPathLength(parsePath("M0 0 L3 4 Z")!); // 10
 - **No precision option and no rounding.** The tolerance is fixed: a length is cheap at this precision, so a lower one would not save enough to need an option (A15), and the result is not rounded (A23).
 - **Tests.** Unit tests compare with known lengths and with polylines of 2 × 10⁷ pieces near cusps; property tests compare random paths with polylines of 20,000 pieces per segment, which are shorter than the curve, and 500 random paths per run with `getTotalLength()` in Chromium, Firefox and WebKit to within 0.1%. 30,000 random paths found no further error. In the corpus, every length lies between the polyline through the end points and, for paths without arcs, the control polygons.
 - **Bundle size** (Bun 1.4 `bun build --minify`): `getPathLength` alone is about 5.0 kB minified, 2.3 kB gzipped, including `normalizePath`.
+
+## 15. Transforms
+
+The transforms module reads, writes and composes the values of `transform`, `gradientTransform` and `patternTransform` (v0.6). Like the paths module, it works on strings and plain objects, not on elements (§3, rule 3): `parseTransform(el.attributes.transform)`. This section records the matrix model and the grammar (B61, A26), and how path data, arcs included, is transformed (B61, A27). Parsing and composing come with B48, applying a matrix to path data with B62.
+
+### Matrix model
+
+`SvgMatrix` is a plain object `{ a, b, c, d, e, f }`, the six values of `matrix(a b c d e f)` under the names `DOMMatrix` and `SVGMatrix` use. It maps a point `(x, y)` to `(a·x + c·y + e, b·x + d·y + f)`:
+
+```ts
+getTransformMatrix(parseTransform("translate(10 20) scale(2)")!);
+// { a: 2, b: 0, c: 0, d: 2, e: 10, f: 20 }
+```
+
+- **2D only.** SVG transforms are 2D affine maps, and six numbers are all such a map needs. `DOMMatrix` is not a plain object (A4) and does not exist in Node.js (A5).
+- **Written left to right, applied right to left.** A list is the product of its functions in the order written, so the last one applies to a point first, as SVG and CSS define it: `translate(10 20) scale(2)` scales, then translates. `multiplyMatrix(m, n)` returns `m × n`, which applies `n` first, as `DOMMatrix.multiply` does.
+- **Functions.** `getTransformMatrix(list)`, `multiplyMatrix(m, n)`, `invertMatrix(m)`, which returns `undefined` when the determinant is 0, and `transformPoint(m, point)`. There is no exported identity: an exported object can be mutated by any caller, which is shared state (§4), and `getTransformMatrix([])` returns a new one. Writing a matrix is `stringifyTransform([{ type: "matrix", ...m }])`; a function for it would only wrap one line, as for the center of bounds (§14).
+- **Exact right angles.** Angles are converted to degrees and reduced to one turn before they are converted to radians, and multiples of 90° give exact sines and cosines, 0 and ±1; for skews, multiples of 45° give exact tangents. Otherwise `rotate(90)` would leave noise, since `Math.cos(Math.PI / 2)` is 6 × 10⁻¹⁷. Other values are computed in doubles and not rounded (A23).
+- **Units.** Absolute lengths are converted to user units with the CSS ratios, 1in = 96px = 96 user units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`, `px`). Percentages refer to the reference box of `transform-box`, and units such as `em` or `vw` to a font or a viewport, which the value does not have, so `getTransformMatrix` returns `undefined` for a list with one of them. `parseTransform` keeps every unit as written, as the typed reads do (A21).
+- **Only the list.** `transform-origin`, `transform-box`, the transforms of ancestors, `viewBox` and nested `svg` elements move an element too, but they are not part of the value, so they are not applied, as the colors module does not resolve inheritance (§12). The matrix from the root to an element (the CTM) can be built later on top of these functions.
+
+### Grammar
+
+`parseTransform(text)` returns an array of `SvgTransformFunction`, one plain object per function, discriminated by `type`, the function name in its canonical spelling, or `undefined` if the text is not a transform list:
+
+```ts
+parseTransform("translate(10,20) rotate(45deg)");
+// [
+//   { type: "translate", x: { value: 10, unit: "" }, y: { value: 20, unit: "" } },
+//   { type: "rotate", angle: { value: 45, unit: "deg" } },
+// ]
+```
+
+- **One grammar for the attributes and the property.** SVG 2 makes `transform` a presentation attribute, with the syntax of the CSS `transform` property from CSS Transforms 1, extended so that every SVG 1.1 value stays valid. `parseTransform` reads this extended syntax, which covers both, so the same function reads `gradientTransform`, `patternTransform` and `transform` in `style` (`getPresentationValue`, §6). It accepts some values CSS rejects in `style`, such as unitless angles, as the typed reads parse by syntax (A21).
+- **From SVG 1.1:** `matrix(a b c d e f)`, `translate(x [y])`, `scale(x [y])`, `rotate(angle [cx cy])`, `skewX(angle)` and `skewY(angle)` with plain numbers, lengths in user units and angles in degrees. Arguments are separated by whitespace, a comma, or both; functions by whitespace, a comma, or nothing; whitespace may stand before `(`.
+- **From CSS Transforms 1:** units on lengths and angles (`translate(10px)`, `rotate(0.5turn)`), `translateX`, `translateY`, `scaleX`, `scaleY`, `skew(ax [ay])`, and the keyword `none`, read as an empty list. Function names and `none` are ASCII case-insensitive, as in CSS.
+- **Not read:** what CSS Transforms 2 adds, the 3D functions (`translate3d`, `rotateX`, `matrix3d`, `perspective`, …) and percentages in `scale`. A list with one of them is `undefined`, as the bearing command is in path data (§13); a 3D transform does not fit `SvgMatrix`. The `translate`, `rotate` and `scale` properties are separate properties and not part of `transform`.
+- **Arguments.** Numbers follow CSS `<number>`, with the scanner of the typed reads and of path data (§6, §13): `.5` and `1e3`, but not `5.`. Lengths and angles are `SvgLength` and `SvgAngle` as the typed reads return them (§6), with `""` for a plain number. The arguments of `matrix` and `scale` and the center of `rotate` are plain numbers, as in SVG 1.1.
+- **Optional arguments are kept as written.** `translate(10)` has no `y` and `rotate(45)` no center, so a list writes back as it was read. The defaults, a `y` of 0 for `translate`, `y = x` for `scale` and the origin for `rotate`, are applied when composing.
+- **Empty and invalid.** Empty text or whitespace only is an empty list, the identity, as SVG 1.1 defines it. An invalid list is `undefined` as a whole, as for path data (A21); browsers ignore an invalid `transform` as a whole too.
+- **Browsers settle the details.** Where the specs are unclear, such as whitespace before `(` in `style`, a comma after the last function or units on the center of `rotate`, B48 tests the case in Chromium, Firefox and WebKit and records the result here.
+
+### Output format
+
+`stringifyTransform(list)` writes each function in its canonical spelling, functions separated by one space and arguments by a comma and a space:
+
+```text
+translate(10)ROTATE(45 5,5)   →   translate(10) rotate(45, 5, 5)
+```
+
+- **Commas between arguments.** Spaces alone are valid in the attributes but not in CSS, and commas are valid in both, so a list whose lengths and angles have units is also valid in `style`. Browsers serialize CSS transforms the same way. Units are written as kept, never added.
+- **Numbers** are written in their shortest form, `-0` as `0`, and `NaN` or an infinity throws a `TypeError`, as in `stringifyPath` (§13).
+- **Round trip.** `parseTransform(stringifyTransform(list))` equals `list` for any list from `parseTransform`. An empty list, read from `""` or `none`, is written `""`.
+- **No decomposition.** Writing a matrix as shorter functions, such as `translate(10)` for `matrix(1 0 0 1 10 0)`, is optimization (v0.7).
+
+### Transforming path data
+
+`transformPath(path, matrix)` returns the path data drawn through the matrix (B62):
+
+```ts
+stringifyPath(
+  transformPath(parsePath("M0 0 h10 a5 5 0 0 1 0 10")!, {
+    a: 0,
+    b: 1,
+    c: -1,
+    d: 0,
+    e: 0,
+    f: 0,
+  }),
+);
+// "M0 0 L0 10 A5 5 0 0 1 -10 10"
+```
+
+- **Normalized.** Relative commands and `H` and `V` cannot keep their form under a rotation, so the path is normalized first (§13) and the result is `SvgNormalizedPathSegment[]`. Lines and Bézier curves map exactly by mapping their end and control points.
+- **Arcs stay arcs (A27).** An affine map turns an ellipse into an ellipse, so an arc maps to an arc exactly; converting it to curves would change the geometry (§13). The new radii and rotation are the singular values and the direction of the matrix's linear part applied to the axes of the ellipse. `largeArc` is kept, since the map keeps the share of the ellipse an arc covers, and `sweep` flips when the determinant is negative, since a reflection reverses the direction.
+- **Exact for similarities.** When the linear part is a rotation with a uniform scale, mirrored or not (`a = d, b = −c` or `a = −d, b = c`), the radii are multiplied by the scale and its angle is added to the rotation, with exact right angles as above; a translation keeps radii, rotation and flags as written. Other matrices use a 2×2 singular value decomposition in doubles, with the rotation in degrees in [0, 180). Equal radii get a rotation of 0.
+- **Radii are not corrected.** SVG scales radii too small to reach the end point up uniformly until the ellipse passes through both ends (SVG 2 appendix B.2.5). An affine map keeps midpoints and ratios along a line, so a renderer scales the transformed radii up to the image of the corrected ellipse, and the radii are transformed as written, made positive. An arc with a zero radius is a line and becomes `L`.
+- **Singular matrices.** With a determinant of 0, the path collapses onto a line or a point. Lines and curves map as above, and an arc becomes `L` segments to its extremes along that line and to its end point, which is its exact image. Browsers do not render an element whose transform is singular, so the result drawn without the transform is a different picture; baking transforms into paths (v0.7) has to skip such matrices.
+- **Numbers.** Points are mapped in doubles and not rounded (A23). A translation alone adds coordinates with the exact decimal sums of normalization (§13), so `translate(0.1)` moves `M0.2 0` to `M0.3 0`.
+- **Measuring.** Bounds and length of a transformed path are those of the result (§14).
+
+### Module
+
+The `transforms` folder holds `parseTransform`, `stringifyTransform`, the transform types and the matrix functions. It uses `shared` for the number scanner and the scanner of lengths and angles, which moves there from `attributes`, and `attributes` only for the types `SvgLength` and `SvgAngle`, which add nothing to a bundle. `transformPath` lives in `geometry`, next to the center form of arcs it needs, and so `geometry` uses `transforms`:
+
+```text
+shared ← attributes ← transforms ← geometry
+       ← paths                   ← geometry
+```
