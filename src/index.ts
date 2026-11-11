@@ -6,3 +6,4 @@ export * from "./parse";
 export * from "./paths";
 export * from "./spec";
 export * from "./stringify";
+export * from "./transforms";

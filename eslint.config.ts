@@ -18,6 +18,7 @@ const modules: Record<string, string[]> = {
   colors: ["ast", "attributes", "shared"],
   spec: ["ast", "attributes", "shared"],
   paths: ["shared"],
+  transforms: ["shared"],
   geometry: ["paths"],
 };
 

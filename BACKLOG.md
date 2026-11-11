@@ -92,7 +92,7 @@ Measure path data: bounds, center and length.
 Read, compose and apply `transform`.
 
 - [x] **B61** Decide the matrix model, the `transform` grammar (SVG 1.1 and CSS transforms) and how arcs are transformed
-- [ ] **B48** Parse, compose and write transforms as matrices
+- [x] **B48** Parse, compose and write transforms as matrices
 - [ ] **B62** Apply a matrix to path data
 - [ ] **B63** Release v0.6.0
 

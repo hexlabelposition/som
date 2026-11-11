@@ -31,7 +31,7 @@ This document records the decisions behind som (SVG Object Model) and the rules 
 | A23 | Path numbers are kept as exact doubles and written in their shortest form; rounding is never implicit, and absolute coordinates are summed exactly (§13)      | Accepted |
 | A24 | Path bounds are exact, as `getBBox()` measures them: curves and arcs up to their extremes, only what is drawn; transforms and stroke are left out (§14)       | Accepted |
 | A25 | Path length is the length of the true curves, to a relative error below 10⁻¹⁰; browsers measure arcs about 0.014% longer (§14)                                | Accepted |
-| A26 | Transforms are 2D matrices `{ a, b, c, d, e, f }`, read in the SVG 2 syntax (SVG 1.1 with CSS Transforms 1); units are kept as written (§15)                  | Accepted |
+| A26 | Transforms are 2D matrices `{ a, b, c, d, e, f }`, read in the SVG 1.1 syntax that browsers apply in the attributes, with plain numbers (§15)                 | Accepted |
 | A27 | A matrix applied to path data maps arcs to arcs exactly, `sweep` flipped by a reflection; the result is normalized (§15)                                      | Accepted |
 
 ## 2. Data model
@@ -146,6 +146,13 @@ som/
 │   │   ├── normalize.ts    #   normalizePath
 │   │   ├── decimal.ts      #   exact decimal sums for normalization
 │   │   └── index.ts
+│   ├── transforms/         # transform lists and matrices (§15)
+│   │   ├── types.ts        #   SvgTransformFunction, one type per function, SvgMatrix, SvgPoint
+│   │   ├── functions.ts    #   argument names and counts of each function
+│   │   ├── parse.ts        #   parseTransform
+│   │   ├── stringify.ts    #   stringifyTransform
+│   │   ├── matrix.ts       #   getTransformMatrix, multiplyMatrix, invertMatrix, transformPoint
+│   │   └── index.ts
 │   ├── geometry/           # measuring path data (§14)
 │   │   ├── bounds.ts       #   getPathBounds, SvgBounds
 │   │   ├── length.ts       #   getPathLength
@@ -180,9 +187,10 @@ som/
                 ← attributes ← colors
                              ← spec
           ← paths ← geometry
+          ← transforms
    ```
 
-   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6). `geometry` measures path segments, so it uses `paths` and nothing else.
+   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6), and so does `transforms` (§15). `geometry` measures path segments, so it uses `paths` and nothing else.
 
    `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21). `colors` also uses `ast` and `shared` directly: the CSS tokenizer that `attributes` uses for `style` lives in `shared`, so `colors` reads `style` attributes and `<style>` sheets with it (§12).
 
@@ -665,7 +673,7 @@ getPathLength(parsePath("M0 0 L3 4 Z")!); // 10
 
 ## 15. Transforms
 
-The transforms module reads, writes and composes the values of `transform`, `gradientTransform` and `patternTransform` (v0.6). Like the paths module, it works on strings and plain objects, not on elements (§3, rule 3): `parseTransform(el.attributes.transform)`. This section records the matrix model and the grammar (B61, A26), and how path data, arcs included, is transformed (B61, A27). Parsing and composing come with B48, applying a matrix to path data with B62.
+The transforms module reads, writes and composes the values of `transform`, `gradientTransform` and `patternTransform` (v0.6). Like the paths module, it works on strings and plain objects, not on elements (§3, rule 3): `parseTransform(el.attributes.transform)`. This section records the matrix model and the grammar (B61, A26; B48), and how path data, arcs included, is transformed (B61, A27). Applying a matrix to path data comes with B62.
 
 ### Matrix model
 
@@ -677,45 +685,50 @@ getTransformMatrix(parseTransform("translate(10 20) scale(2)")!);
 ```
 
 - **2D only.** SVG transforms are 2D affine maps, and six numbers are all such a map needs. `DOMMatrix` is not a plain object (A4) and does not exist in Node.js (A5).
-- **Written left to right, applied right to left.** A list is the product of its functions in the order written, so the last one applies to a point first, as SVG and CSS define it: `translate(10 20) scale(2)` scales, then translates. `multiplyMatrix(m, n)` returns `m × n`, which applies `n` first, as `DOMMatrix.multiply` does.
-- **Functions.** `getTransformMatrix(list)`, `multiplyMatrix(m, n)`, `invertMatrix(m)`, which returns `undefined` when the determinant is 0, and `transformPoint(m, point)`. There is no exported identity: an exported object can be mutated by any caller, which is shared state (§4), and `getTransformMatrix([])` returns a new one. Writing a matrix is `stringifyTransform([{ type: "matrix", ...m }])`; a function for it would only wrap one line, as for the center of bounds (§14).
-- **Exact right angles.** Angles are converted to degrees and reduced to one turn before they are converted to radians, and multiples of 90° give exact sines and cosines, 0 and ±1; for skews, multiples of 45° give exact tangents. Otherwise `rotate(90)` would leave noise, since `Math.cos(Math.PI / 2)` is 6 × 10⁻¹⁷. Other values are computed in doubles and not rounded (A23).
-- **Units.** Absolute lengths are converted to user units with the CSS ratios, 1in = 96px = 96 user units (`cm`, `mm`, `Q`, `in`, `pt`, `pc`, `px`). Percentages refer to the reference box of `transform-box`, and units such as `em` or `vw` to a font or a viewport, which the value does not have, so `getTransformMatrix` returns `undefined` for a list with one of them. `parseTransform` keeps every unit as written, as the typed reads do (A21).
+- **Written left to right, applied right to left.** A list is the product of its functions in the order written, so the last one applies to a point first, as SVG defines it: `translate(10 20) scale(2)` scales, then translates. `multiplyMatrix(m, n)` returns `m × n`, which applies `n` first, as `DOMMatrix.multiply` does.
+- **Functions.** `getTransformMatrix(list)`, `multiplyMatrix(m, n)`, `invertMatrix(m)`, which returns `undefined` when the determinant is 0 or not finite, and `transformPoint(m, point)` with an `SvgPoint`, `{ x, y }`. There is no exported identity: an exported object can be mutated by any caller, which is shared state (§4), and `getTransformMatrix([])` returns a new one. Writing a matrix is `stringifyTransform([{ type: "matrix", ...m }])`; a function for it would only wrap one line, as for the center of bounds (§14).
+- **Exact right angles.** Angles are reduced to one turn in degrees, where `%` is exact, before they are converted to radians, and multiples of 90° give exact sines and cosines, 0 and ±1; for skews, multiples of 45° give exact tangents. Otherwise `rotate(90)` would leave noise, since `Math.cos(Math.PI / 2)` is 6 × 10⁻¹⁷. A skew by 90° keeps the tangent of the double nearest π/2, about 1.6 × 10¹⁶, as browsers compute it, rather than an infinity. Other values are computed in doubles and not rounded (A23), and `-0` is written as `0`.
 - **Only the list.** `transform-origin`, `transform-box`, the transforms of ancestors, `viewBox` and nested `svg` elements move an element too, but they are not part of the value, so they are not applied, as the colors module does not resolve inheritance (§12). The matrix from the root to an element (the CTM) can be built later on top of these functions.
 
 ### Grammar
 
-`parseTransform(text)` returns an array of `SvgTransformFunction`, one plain object per function, discriminated by `type`, the function name in its canonical spelling, or `undefined` if the text is not a transform list:
+`parseTransform(text)` returns an array of `SvgTransformFunction`, one plain object per function, discriminated by `type`, the function name, or `undefined` if the text is not a transform list:
 
 ```ts
-parseTransform("translate(10,20) rotate(45deg)");
+parseTransform("translate(10,20) rotate(45 5 5)");
 // [
-//   { type: "translate", x: { value: 10, unit: "" }, y: { value: 20, unit: "" } },
-//   { type: "rotate", angle: { value: 45, unit: "deg" } },
+//   { type: "translate", x: 10, y: 20 },
+//   { type: "rotate", angle: 45, cx: 5, cy: 5 },
 // ]
 ```
 
-- **One grammar for the attributes and the property.** SVG 2 makes `transform` a presentation attribute, with the syntax of the CSS `transform` property from CSS Transforms 1, extended so that every SVG 1.1 value stays valid. `parseTransform` reads this extended syntax, which covers both, so the same function reads `gradientTransform`, `patternTransform` and `transform` in `style` (`getPresentationValue`, §6). It accepts some values CSS rejects in `style`, such as unitless angles, as the typed reads parse by syntax (A21).
-- **From SVG 1.1:** `matrix(a b c d e f)`, `translate(x [y])`, `scale(x [y])`, `rotate(angle [cx cy])`, `skewX(angle)` and `skewY(angle)` with plain numbers, lengths in user units and angles in degrees. Arguments are separated by whitespace, a comma, or both; functions by whitespace, a comma, or nothing; whitespace may stand before `(`.
-- **From CSS Transforms 1:** units on lengths and angles (`translate(10px)`, `rotate(0.5turn)`), `translateX`, `translateY`, `scaleX`, `scaleY`, `skew(ax [ay])`, and the keyword `none`, read as an empty list. Function names and `none` are ASCII case-insensitive, as in CSS.
-- **Not read:** what CSS Transforms 2 adds, the 3D functions (`translate3d`, `rotateX`, `matrix3d`, `perspective`, …) and percentages in `scale`. A list with one of them is `undefined`, as the bearing command is in path data (§13); a 3D transform does not fit `SvgMatrix`. The `translate`, `rotate` and `scale` properties are separate properties and not part of `transform`.
-- **Arguments.** Numbers follow CSS `<number>`, with the scanner of the typed reads and of path data (§6, §13): `.5` and `1e3`, but not `5.`. Lengths and angles are `SvgLength` and `SvgAngle` as the typed reads return them (§6), with `""` for a plain number. The arguments of `matrix` and `scale` and the center of `rotate` are plain numbers, as in SVG 1.1.
+- **SVG 1.1, as browsers apply it.** SVG 2 gives the `transform` attribute the syntax of the CSS `transform` property, extended by the SVG 1.1 one, but Chromium, Firefox and WebKit apply only the SVG 1.1 syntax in the attributes: `rotate(45deg)`, `translate(10px)`, `translateX(10)`, `skew(10)`, `none` and `ROTATE(45)` are ignored there as a whole, and work only in `style`. `parseTransform` reads what browsers draw, so a list it reads is never a transform browsers leave out, and baking one into path data (B62) never changes the picture.
+- **Functions.** `matrix(a b c d e f)`, `translate(x [y])`, `scale(x [y])`, `rotate(angle [cx cy])`, `skewX(angle)` and `skewY(angle)`, each its own type (`SvgTranslateFunction`, …). Names are case-sensitive. Every argument is a plain number: lengths in user units, angles in degrees.
+- **Separators.** Arguments are separated by whitespace, a comma, or both, or by nothing when the next number starts with a sign or `.` (`translate(-10-20)`, `translate(1.5.5)`); functions by whitespace, one comma, or nothing (`translate(10)scale(2)`). Whitespace may stand before `(` and inside the parentheses. A comma must stand between two arguments or two functions, not at the start or the end. The SVG 1.1 grammar allows several commas between functions, which only Firefox reads; Chromium and WebKit do not, and neither does som.
+- **Numbers** follow CSS `<number>`, with the scanner of the typed reads and of path data (§6, §13): `.5` and `1e3`, but not `5.`, which browsers reject too; a number too large to be finite is invalid.
 - **Optional arguments are kept as written.** `translate(10)` has no `y` and `rotate(45)` no center, so a list writes back as it was read. The defaults, a `y` of 0 for `translate`, `y = x` for `scale` and the origin for `rotate`, are applied when composing.
 - **Empty and invalid.** Empty text or whitespace only is an empty list, the identity, as SVG 1.1 defines it. An invalid list is `undefined` as a whole, as for path data (A21); browsers ignore an invalid `transform` as a whole too.
-- **Browsers settle the details.** Where the specs are unclear, such as whitespace before `(` in `style`, a comma after the last function or units on the center of `rotate`, B48 tests the case in Chromium, Firefox and WebKit and records the result here.
+- **The CSS property is not read.** `transform` in `style` uses the CSS syntax, with units, more functions and `none`, and percentages that need the reference box of `transform-box`. Reading it is a separate function with its own types, added when it is needed.
 
 ### Output format
 
-`stringifyTransform(list)` writes each function in its canonical spelling, functions separated by one space and arguments by a comma and a space:
+`stringifyTransform(list)` writes functions separated by one space and their arguments separated by one space:
 
 ```text
-translate(10)ROTATE(45 5,5)   →   translate(10) rotate(45, 5, 5)
+translate(10,20)rotate(45,5,5)   →   translate(10 20) rotate(45 5 5)
 ```
 
-- **Commas between arguments.** Spaces alone are valid in the attributes but not in CSS, and commas are valid in both, so a list whose lengths and angles have units is also valid in `style`. Browsers serialize CSS transforms the same way. Units are written as kept, never added.
-- **Numbers** are written in their shortest form, `-0` as `0`, and `NaN` or an infinity throws a `TypeError`, as in `stringifyPath` (§13).
-- **Round trip.** `parseTransform(stringifyTransform(list))` equals `list` for any list from `parseTransform`. An empty list, read from `""` or `none`, is written `""`.
+- **One separator.** As in path data (§13), one space separates arguments and functions, with no space at the start, the end or around the parentheses. Optional arguments are written when they are given; `rotate` with only one of `cx` and `cy` throws a `TypeError`.
+- **Numbers** are written in their shortest form, `-0` as `0`, and `NaN` or an infinity throws a `TypeError`, as in `stringifyPath` (§13). An unknown `type` or a missing argument throws too.
+- **Round trip.** `parseTransform(stringifyTransform(list))` equals `list` for any list from `parseTransform`, and writing it again gives the same text. An empty list is `""`.
 - **No decomposition.** Writing a matrix as shorter functions, such as `translate(10)` for `matrix(1 0 0 1 10 0)`, is optimization (v0.7).
+
+### Tests and size
+
+- **Browsers.** The tests check in Chromium, Firefox and WebKit that browsers ignore every list `parseTransform` rejects, that 300 random lists per run, written with random separators and spacing, have as many functions in `transform.baseVal` as `parseTransform` reads, and that `getCTM()` gives the matrix of `getTransformMatrix` for 500 random lists per run, to within 10⁻⁴ of the largest value of the matrix or the arguments, angles included,, as browsers compute in 32-bit floats in places. Lists with a function without an inverse are left out of that comparison: Firefox gives the identity for them, since an element with such a transform is not rendered.
+- **Properties.** Any valid spelling of a random list reads as that list; the matrix of a list maps a point as its functions do one by one; a matrix times its inverse is the identity.
+- **Corpus.** Every transform list in the fixtures and icon sets parses, reads back from `stringifyTransform` unchanged and has a finite matrix. The corpus has only 6 of them, all `matrix`, from Inkscape and Illustrator, so the browser tests carry the grammar.
+- **Bundle size** (Bun 1.4 `bun build --minify`): `parseTransform` alone is about 1.4 kB minified, 0.7 kB gzipped, `stringifyTransform` 1.0 kB and 0.5 kB, `getTransformMatrix` 1.0 kB and 0.5 kB.
 
 ### Transforming path data
 
@@ -745,9 +758,4 @@ stringifyPath(
 
 ### Module
 
-The `transforms` folder holds `parseTransform`, `stringifyTransform`, the transform types and the matrix functions. It uses `shared` for the number scanner and the scanner of lengths and angles, which moves there from `attributes`, and `attributes` only for the types `SvgLength` and `SvgAngle`, which add nothing to a bundle. `transformPath` lives in `geometry`, next to the center form of arcs it needs, and so `geometry` uses `transforms`:
-
-```text
-shared ← attributes ← transforms ← geometry
-       ← paths                   ← geometry
-```
+The `transforms` folder holds `parseTransform`, `stringifyTransform`, the transform types and the matrix functions, and uses only `shared`, for the number scanner. `transformPath` lives in `geometry`, next to the center form of arcs it needs, so with B62 `geometry` uses `transforms` too (§3).
