@@ -1,4 +1,4 @@
-import { addExact, reflectExact } from "./decimal";
+import { addExact, reflectExact } from "../shared";
 import type { SvgNormalizedPathSegment, SvgPathSegment } from "./types";
 
 /** A relative coordinate made absolute, or an absolute one as it is. */
