@@ -19,7 +19,7 @@ const modules: Record<string, string[]> = {
   spec: ["ast", "attributes", "shared"],
   paths: ["shared"],
   transforms: ["shared"],
-  geometry: ["paths"],
+  geometry: ["shared", "paths", "transforms"],
 };
 
 const order = Object.keys(modules);

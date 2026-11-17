@@ -13,5 +13,6 @@ export {
   scanStylesheet,
   type StyleDeclaration,
 } from "./css";
+export { addExact, decimalPlaces, reflectExact } from "./decimal";
 export { splitImportant } from "./important";
 export { isWhitespace, scanNumber, skipDigits, toFinite } from "./number";

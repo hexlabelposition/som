@@ -10,6 +10,7 @@ import {
   getPathBounds,
   getPathLength,
   getTransformMatrix,
+  invertMatrix,
   isElement,
   normalizeColor,
   normalizePath,
@@ -20,8 +21,10 @@ import {
   stringify,
   stringifyPath,
   stringifyTransform,
+  transformPath,
   type SvgColor,
   type SvgColorUse,
+  type SvgMatrix,
   type SvgPathSegment,
 } from "../src";
 
@@ -34,8 +37,11 @@ import {
 // the same way again, and its normalized form reads back unchanged too. Its
 // bounds (§14) are finite and contain the end point of every segment, and
 // its length lies between the polyline through the end points and the
-// control polygons. Every transform list (§15) parses, reads back from
-// stringifyTransform unchanged and has a finite matrix.
+// control polygons. Drawn through a matrix that rotates, skews and scales
+// (§15), it has finite numbers and the mapped end points, the bounds check
+// holds for it, and the inverse matrix gives the end points back. Every
+// transform list parses, reads back from stringifyTransform unchanged and has
+// a finite matrix.
 
 const fixtures = fileURLToPath(new URL("fixtures/", import.meta.url));
 const modules = fileURLToPath(new URL("../node_modules/", import.meta.url));
@@ -206,10 +212,70 @@ function checkLength(path: SvgPathSegment[]): string | undefined {
 }
 
 /**
+ * A matrix that is not a similarity, so arcs go through the general case.
+ */
+const skew: SvgMatrix = { a: 1.5, b: 0.5, c: -0.25, d: 1, e: 3, f: -7 };
+
+/**
+ * The end points of the segments of normalized path data, `Z` included.
+ */
+function endPoints(path: SvgPathSegment[]): { x: number; y: number }[] {
+  let start = { x: 0, y: 0 };
+  return normalizePath(path).map((segment) => {
+    if (segment.type === "Z") return start;
+    if (segment.type === "M") start = segment;
+    return { x: segment.x, y: segment.y };
+  });
+}
+
+/**
+ * Returns what is wrong with a path drawn through a matrix, or `undefined`
+ * if its numbers are finite, its end points are the mapped end points, its
+ * bounds contain them and the inverse matrix maps them back.
+ */
+function checkTransformed(path: SvgPathSegment[]): string | undefined {
+  const transformed = transformPath(path, skew);
+  for (const segment of transformed) {
+    if (
+      !Object.values(segment).every(
+        (value) => typeof value !== "number" || Number.isFinite(value),
+      )
+    ) {
+      return "infinite transformed path";
+    }
+  }
+  const expected = endPoints(path);
+  const actual = endPoints(transformed);
+  const back = endPoints(
+    transformPath(transformed, invertMatrix(skew) ?? skew),
+  );
+  if (actual.length !== expected.length || back.length !== expected.length) {
+    return "transformed path has other segments";
+  }
+  for (const [index, { x, y }] of expected.entries()) {
+    const mapped = {
+      x: skew.a * x + skew.c * y + skew.e,
+      y: skew.b * x + skew.d * y + skew.f,
+    };
+    const tolerance = 1e-12 * Math.max(1, Math.abs(x), Math.abs(y));
+    const point = actual[index] ?? mapped;
+    const again = back[index] ?? { x, y };
+    if (Math.hypot(point.x - mapped.x, point.y - mapped.y) > 2 * tolerance) {
+      return "transformed end point is not the mapped one";
+    }
+    if (Math.hypot(again.x - x, again.y - y) > 10 * tolerance) {
+      return "inverse does not give the end point back";
+    }
+  }
+  return checkBounds(transformed);
+}
+
+/**
  * Returns a description of the first failed paths check, or `undefined` when
  * every `d` attribute parses, round-trips through stringifyPath and is
- * written the same way again, and so does its normalized form, and its
- * bounds contain every end point.
+ * written the same way again, and so does its normalized form, its bounds
+ * contain every end point, and it is drawn through a matrix as
+ * checkTransformed expects.
  */
 function checkPaths(input: string): string | undefined {
   try {
@@ -226,7 +292,8 @@ function checkPaths(input: string): string | undefined {
       }
       // Numbers are written without loss, so comparing the text is
       // comparing the segments, and much faster.
-      const failure = checkBounds(path) ?? checkLength(path);
+      const failure =
+        checkBounds(path) ?? checkLength(path) ?? checkTransformed(path);
       if (failure !== undefined) return `${failure}: ${d.slice(0, 40)}`;
       const normalized = stringifyPath(normalizePath(path));
       const again = normalizePath(parsePath(normalized) ?? []);

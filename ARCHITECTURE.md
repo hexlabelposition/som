@@ -144,7 +144,6 @@ som/
 │   │   ├── parse.ts        #   parsePath
 │   │   ├── stringify.ts    #   stringifyPath
 │   │   ├── normalize.ts    #   normalizePath
-│   │   ├── decimal.ts      #   exact decimal sums for normalization
 │   │   └── index.ts
 │   ├── transforms/         # transform lists and matrices (§15)
 │   │   ├── types.ts        #   SvgTransformFunction, one type per function, SvgMatrix, SvgPoint
@@ -156,6 +155,7 @@ som/
 │   ├── geometry/           # measuring path data (§14)
 │   │   ├── bounds.ts       #   getPathBounds, SvgBounds
 │   │   ├── length.ts       #   getPathLength
+│   │   ├── transform.ts    #   transformPath
 │   │   ├── arc.ts          #   arcs in center parameterization
 │   │   ├── quadrature.ts   #   adaptive Gauss-Legendre quadrature
 │   │   ├── polynomial.ts   #   roots of quadratics and cubics in (0, 1)
@@ -187,10 +187,10 @@ som/
                 ← attributes ← colors
                              ← spec
           ← paths ← geometry
-          ← transforms
+          ← transforms ←┘
    ```
 
-   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6), and so does `transforms` (§15). `geometry` measures path segments, so it uses `paths` and nothing else.
+   `paths` works on strings only and uses `shared` for the CSS `<number>` scanner it shares with the typed reads (§6), and so does `transforms` (§15). `geometry` measures path segments and draws them through matrices (§15), so it uses `paths` and `transforms`, and `shared` for the exact decimal sums of normalization (§13), which a translation uses too.
 
    `spec` uses `attributes` for the `style` attribute (B56); `attributes` never uses `spec`, so its helpers pull no spec data into a bundle (A21). `colors` also uses `ast` and `shared` directly: the CSS tokenizer that `attributes` uses for `style` lives in `shared`, so `colors` reads `style` attributes and `<style>` sheets with it (§12).
 
@@ -649,7 +649,7 @@ getPathBounds(parsePath("M0 0 C0 -10 10 -10 10 0")!);
 - **Arcs as SVG draws them.** An arc is converted to its center form as SVG 2 appendix B.2.4 defines it: negative radii are used as positive, radii too small to reach the end point are scaled up, and an arc with a zero radius is a straight line. An extreme counts only strictly inside the arc, since an end point is already known exactly.
 - **Only what is drawn.** A moveto that no command follows draws nothing and is left out; a path that draws nothing, such as `M10 20`, has zero-size bounds at its last point, as in browsers. Segments of zero length count: the path passes through their point.
 - **Browsers differ on degenerate paths.** In Chromium and Firefox, `getBBox()` leaves a moveto at the end of a path out of a path of lines but counts it in a path with curves, and counts segments of zero length in Chromium for lines only and in Firefox not at all. som follows the geometry rather than these engine details, and the browser tests leave such paths out.
-- **Not included:** the stroke, markers and `transform`. A stroke depends on width, joins, caps and the miter limit, and transforms come with v0.6 (B48); bounds of a transformed path are the bounds of the path after the transform is applied (B62), not the transformed box.
+- **Not included:** the stroke, markers and `transform`. A stroke depends on width, joins, caps and the miter limit. Bounds of a transformed path are the bounds of `transformPath`'s result (§15), not the transformed box.
 - **The center is the middle of the bounds.** `{ x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }`; a function for it would only wrap one line, as for distinct colors (§12).
 - **Numbers are not rounded.** End points come from `normalizePath` and are exact decimals (§13); extremes are computed in doubles and keep their rounding error, about 10⁻¹⁵ of the value. Rounding is left to the caller, as everywhere (A23).
 - **Tests.** Unit tests cover each command and the cases above; property tests compare 500 random paths per run with `getBBox()` in Chromium, Firefox and WebKit to within 0.5% of the path's size, which allows for 32-bit floats and for browsers drawing arcs as cubic curves: Chromium is off by up to about 0.1% on thin ellipses, where som matches 10⁶ points sampled along the arc, while a missed extreme is off by far more. Arcs in these paths have radii within a factor of 10. Every path in the corpus has finite bounds that contain the end point of each segment.
@@ -673,7 +673,7 @@ getPathLength(parsePath("M0 0 L3 4 Z")!); // 10
 
 ## 15. Transforms
 
-The transforms module reads, writes and composes the values of `transform`, `gradientTransform` and `patternTransform` (v0.6). Like the paths module, it works on strings and plain objects, not on elements (§3, rule 3): `parseTransform(el.attributes.transform)`. This section records the matrix model and the grammar (B61, A26; B48), and how path data, arcs included, is transformed (B61, A27). Applying a matrix to path data comes with B62.
+The transforms module reads, writes and composes the values of `transform`, `gradientTransform` and `patternTransform` (v0.6). Like the paths module, it works on strings and plain objects, not on elements (§3, rule 3): `parseTransform(el.attributes.transform)`. This section records the matrix model and the grammar (B61, A26; B48), and how path data, arcs included, is transformed (B61, A27; B62).
 
 ### Matrix model
 
@@ -732,7 +732,7 @@ translate(10,20)rotate(45,5,5)   →   translate(10 20) rotate(45 5 5)
 
 ### Transforming path data
 
-`transformPath(path, matrix)` returns the path data drawn through the matrix (B62):
+`transformPath(path, matrix)` returns the path data drawn through the matrix, as if the path had it as its `transform` (B62):
 
 ```ts
 stringifyPath(
@@ -750,12 +750,15 @@ stringifyPath(
 
 - **Normalized.** Relative commands and `H` and `V` cannot keep their form under a rotation, so the path is normalized first (§13) and the result is `SvgNormalizedPathSegment[]`. Lines and Bézier curves map exactly by mapping their end and control points.
 - **Arcs stay arcs (A27).** An affine map turns an ellipse into an ellipse, so an arc maps to an arc exactly; converting it to curves would change the geometry (§13). The new radii and rotation are the singular values and the direction of the matrix's linear part applied to the axes of the ellipse. `largeArc` is kept, since the map keeps the share of the ellipse an arc covers, and `sweep` flips when the determinant is negative, since a reflection reverses the direction.
-- **Exact for similarities.** When the linear part is a rotation with a uniform scale, mirrored or not (`a = d, b = −c` or `a = −d, b = c`), the radii are multiplied by the scale and its angle is added to the rotation, with exact right angles as above; a translation keeps radii, rotation and flags as written. Other matrices use a 2×2 singular value decomposition in doubles, with the rotation in degrees in [0, 180). Equal radii get a rotation of 0.
+- **Exact for similarities.** When the linear part is a rotation with a uniform scale (`a = d, b = −c`), the radii are multiplied by the scale and its angle is added to the rotation; mirrored (`a = −d, b = c`), the axes are reflected, so the rotation becomes the angle minus the rotation. The angle is that of `(a, b)`, exact for right angles, and the rotation is reduced to one turn. A translation keeps radii, rotation and flags as written, a zero or negative radius too.
+- **Other matrices.** When the images of the two semi-axes are still perpendicular, as for a scale of an ellipse aligned with the axes, they are the new semi-axes: each radius stays with its axis, and the rotation is the direction of the image of the x axis, so `scale(3 1)` turns `A10 5 90` into `A10 15 90`. Otherwise a closed-form 2×2 singular value decomposition in doubles gives the larger radius as `rx`, the smaller one as `|det| / rx`, which keeps its precision on thin ellipses, and the rotation in degrees in [0, 180). Equal radii get a rotation of 0, whatever the matrix.
 - **Radii are not corrected.** SVG scales radii too small to reach the end point up uniformly until the ellipse passes through both ends (SVG 2 appendix B.2.5). An affine map keeps midpoints and ratios along a line, so a renderer scales the transformed radii up to the image of the corrected ellipse, and the radii are transformed as written, made positive. An arc with a zero radius is a line and becomes `L`.
 - **Singular matrices.** With a determinant of 0, the path collapses onto a line or a point. Lines and curves map as above, and an arc becomes `L` segments to its extremes along that line and to its end point, which is its exact image. Browsers do not render an element whose transform is singular, so the result drawn without the transform is a different picture; baking transforms into paths (v0.7) has to skip such matrices.
 - **Numbers.** Points are mapped in doubles and not rounded (A23). A translation alone adds coordinates with the exact decimal sums of normalization (§13), so `translate(0.1)` moves `M0.2 0` to `M0.3 0`.
 - **Measuring.** Bounds and length of a transformed path are those of the result (§14).
+- **Tests.** Unit tests cover each command, similarities, scales, the general case and singular matrices. Property tests draw random paths through random matrices that squeeze shapes by at most a factor of 10: points sampled along the path and mapped lie on the result, on the curve at the same parameter or on the arc's ellipse between its ends; the result has the bounds of the mapped points; a similarity scales the length by its scale; and the inverse matrix gives the path back. In Chromium, Firefox and WebKit, `isPointInStroke()` finds the mapped points on the result drawn with a stroke of 0.4% of its size, for 300 random paths per run. Every path in the corpus, drawn through a matrix that skews, has the mapped end points and finite bounds that contain them, and the inverse gives them back.
+- **Bundle size** (Bun 1.4 `bun build --minify`): `transformPath` alone is about 5.6 kB minified, 2.4 kB gzipped, including `normalizePath` and `getTransformMatrix`.
 
 ### Module
 
-The `transforms` folder holds `parseTransform`, `stringifyTransform`, the transform types and the matrix functions, and uses only `shared`, for the number scanner. `transformPath` lives in `geometry`, next to the center form of arcs it needs, so with B62 `geometry` uses `transforms` too (§3).
+The `transforms` folder holds `parseTransform`, `stringifyTransform`, the transform types and the matrix functions, and uses only `shared`, for the number scanner. `transformPath` lives in `geometry`, next to the center form of arcs it needs, so `geometry` uses `transforms` too (§3).

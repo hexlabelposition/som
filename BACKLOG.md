@@ -93,7 +93,7 @@ Read, compose and apply `transform`.
 
 - [x] **B61** Decide the matrix model, the `transform` grammar (SVG 1.1 and CSS transforms) and how arcs are transformed
 - [x] **B48** Parse, compose and write transforms as matrices
-- [ ] **B62** Apply a matrix to path data
+- [x] **B62** Apply a matrix to path data
 - [ ] **B63** Release v0.6.0
 
 ## v0.7 - Optimization
