@@ -274,6 +274,68 @@ const { document } = globalThis as {
   };
 };
 
+/**
+ * Whether a path has a curve whose control points lie on the line through
+ * its end points, so the curve runs along that line and may turn back on
+ * it. Firefox measures such a curve as the line between its end points:
+ * `M0 0 C0 10 0 0 0 1` as 1 and `M0 0 Q0 10 0 0` as 0.
+ *
+ * @example
+ * ```ts
+ * hasCurveOnALine(parsePath("M0 0 C0 0.01 0 0 0 0")!); // true
+ * hasCurveOnALine(parsePath("M0 0 C0 1 0.1 0 0 0")!); // false
+ * ```
+ */
+function hasCurveOnALine(segments: SvgPathSegment[]): boolean {
+  let x = 0;
+  let y = 0;
+  let startX = 0;
+  let startY = 0;
+  for (const s of normalizePath(segments)) {
+    switch (s.type) {
+      case "M":
+        startX = s.x;
+        startY = s.y;
+        break;
+      case "Z":
+        x = startX;
+        y = startY;
+        continue;
+      case "C":
+      case "Q": {
+        const points: [number, number][] =
+          s.type === "C"
+            ? [
+                [s.x1, s.y1],
+                [s.x2, s.y2],
+                [s.x, s.y],
+              ]
+            : [
+                [s.x1, s.y1],
+                [s.x, s.y],
+              ];
+        // The farthest point from the start gives the direction of the line.
+        let [dx, dy] = [0, 0];
+        for (const [px, py] of points) {
+          if (Math.hypot(px - x, py - y) > Math.hypot(dx, dy)) {
+            [dx, dy] = [px - x, py - y];
+          }
+        }
+        const onLine = points.every(
+          ([px, py]) =>
+            Math.abs(dx * (py - y) - dy * (px - x)) <=
+            1e-9 * (dx * dx + dy * dy),
+        );
+        if (onLine) return true;
+        break;
+      }
+    }
+    x = s.x;
+    y = s.y;
+  }
+  return false;
+}
+
 describe.skipIf(document === undefined)("getPathLength in a browser", () => {
   test("gives the length of getTotalLength()", () => {
     if (document === undefined) return;
@@ -285,6 +347,7 @@ describe.skipIf(document === undefined)("getPathLength in a browser", () => {
     try {
       fc.assert(
         fc.property(path, (segments) => {
+          fc.pre(!hasCurveOnALine(segments));
           const d = stringifyPath(segments);
           element.setAttribute("d", d);
           const expected = element.getTotalLength();
